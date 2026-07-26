@@ -13,9 +13,12 @@ import re
 from pathlib import Path
 from urllib.parse import quote
 
+import icons
+
 ROOT = Path(__file__).parent
 SRC = ROOT / "src"
 DIST = ROOT / "dist"
+EXTENSION = ROOT / "extension"
 ENTRY = "main.js"
 
 IMPORT_RE = re.compile(r"^import\s.*?from\s+'(?P<path>[^']+)';\s*$", re.MULTILINE | re.DOTALL)
@@ -71,6 +74,12 @@ def bundle() -> str:
     modules = resolve(ENTRY)
     parts = [strip_module_syntax((SRC / name).read_text()) for name in modules]
     body = "\n".join(parts)
+    leftovers = re.findall(r"^\s*(?:import|export)\s.*$", body, re.MULTILINE)
+    if leftovers:
+        raise SystemExit(
+            "module syntax survived bundling, which would fail in the browser:\n  "
+            + "\n  ".join(leftovers)
+        )
     return f"(function () {{\n'use strict';\n{body}\n}})();"
 
 
@@ -116,6 +125,18 @@ Bookmarklet size: {size_kb:.1f} KB.</p>
 """
 
 
+def build_extension(source: str) -> Path:
+    """Assembles a loadable extension from the shared bundle and the manifest."""
+    target = DIST / "extension"
+    target.mkdir(parents=True, exist_ok=True)
+
+    for name in ("manifest.json", "background.js"):
+        (target / name).write_text((EXTENSION / name).read_text())
+    (target / "content.js").write_text(source)
+    icons.write_all(target / "icons")
+    return target
+
+
 def main() -> None:
     source = compact(bundle())
     bookmarklet = "javascript:" + quote(source, safe="")
@@ -124,11 +145,13 @@ def main() -> None:
     (DIST / "bookmarklet.js").write_text(source)
     (DIST / "bookmarklet.txt").write_text(bookmarklet)
     (DIST / "install.html").write_text(install_page(bookmarklet, len(bookmarklet) / 1024))
+    extension = build_extension(source)
 
-    print(f"modules : {', '.join(resolve(ENTRY))}")
-    print(f"source  : {len(source) / 1024:.1f} KB")
-    print(f"url     : {len(bookmarklet) / 1024:.1f} KB")
-    print(f"wrote   : {DIST / 'install.html'}")
+    print(f"modules   : {', '.join(resolve(ENTRY))}")
+    print(f"source    : {len(source) / 1024:.1f} KB")
+    print(f"url       : {len(bookmarklet) / 1024:.1f} KB")
+    print(f"install   : {DIST / 'install.html'}")
+    print(f"extension : {extension}")
 
 
 if __name__ == "__main__":
