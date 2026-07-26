@@ -29,11 +29,11 @@ def rounded_rect_coverage(x: float, y: float, x0: float, y0: float, x1: float, y
     """True when the point lies inside a rounded rectangle."""
     if not (x0 <= x <= x1 and y0 <= y <= y1):
         return False
+    # Clamping to the corner centre makes the distance zero along the straight
+    # edges, so this one test covers the whole shape.
     cx = min(max(x, x0 + radius), x1 - radius)
     cy = min(max(y, y0 + radius), y1 - radius)
-    return (x - cx) ** 2 + (y - cy) ** 2 <= radius ** 2 or (
-        x0 + radius <= x <= x1 - radius or y0 + radius <= y <= y1 - radius
-    )
+    return (x - cx) ** 2 + (y - cy) ** 2 <= radius ** 2
 
 
 def sample(x: float, y: float) -> tuple[int, int, int, int]:

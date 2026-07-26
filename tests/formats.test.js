@@ -2,23 +2,11 @@ import { parse } from './dom.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { entryFromPost, entryFromReply } from '../src/glowfic.js';
+import { entriesFromDocument, entryFromPost, entryFromReply } from '../src/glowfic.js';
+import { MAD_INVESTOR } from './fixtures.js';
 import { FORMATS, buildDocument, splitDocument } from '../src/formats.js';
 
 const fixture = readFileSync(new URL('./fixtures/thread-page.html', import.meta.url), 'utf8');
-
-const POST = {
-  id: 4582,
-  subject: 'mad investor chaos and the woman of asmodeus',
-  description: 'some dath ilani are more Chaotic than others, but',
-  num_replies: 4482,
-  board: { id: 215, name: 'planecrash' },
-  section: { id: 703, name: 'planecrash' },
-  authors: [{ username: 'Iarwain' }, { username: 'lintamande' }],
-  character: { id: 11729, name: 'Keltham', screenname: 'lawful chaotic' },
-  icon: { keyword: 'brooding 1' },
-  content: '<p>Keltham is having a <em>very</em> strange day.</p>',
-};
 
 const { markdown, html } = FORMATS;
 
@@ -49,20 +37,20 @@ test('narration with no character is labelled with the author alone', () => {
 
 test('a character with no known author is labelled by character alone', () => {
   assert.equal(
-    markdown.entry(entryFromPost(POST, null), { icons: false }),
+    markdown.entry(entryFromPost(MAD_INVESTOR, null), { icons: false }),
     '## Keltham\nKeltham is having a *very* strange day.'
   );
 });
 
 test('icon keywords can be turned off', () => {
   assert.equal(
-    markdown.entry(entryFromPost(POST, 'Iarwain'), { icons: false }),
+    markdown.entry(entryFromPost(MAD_INVESTOR, 'Iarwain'), { icons: false }),
     '## Keltham (Iarwain)\nKeltham is having a *very* strange day.'
   );
 });
 
 test('the markdown header carries the facts needed to discuss the thread', () => {
-  const document = buildDocument(markdown, POST, [], {});
+  const document = buildDocument(markdown, MAD_INVESTOR, [], {});
   assert.ok(
     document.startsWith(
       '# mad investor chaos and the woman of asmodeus\n' +
@@ -74,13 +62,13 @@ test('the markdown header carries the facts needed to discuss the thread', () =>
 });
 
 test('a duplicated board and section name is not repeated', () => {
-  const document = buildDocument(markdown, POST, [], {});
+  const document = buildDocument(markdown, MAD_INVESTOR, [], {});
   assert.ok(document.includes('planecrash · Iarwain'));
   assert.ok(!document.includes('planecrash / planecrash'));
 });
 
 test('the HTML output is a standalone document with the same facts', () => {
-  const document = buildDocument(html, POST, [entryFromPost(POST, 'Iarwain')], {});
+  const document = buildDocument(html, MAD_INVESTOR, [entryFromPost(MAD_INVESTOR, 'Iarwain')], {});
 
   assert.ok(document.startsWith('<!doctype html>'));
   assert.ok(document.includes('<meta charset="utf-8">'));
@@ -92,7 +80,7 @@ test('the HTML output is a standalone document with the same facts', () => {
 });
 
 test('an HTML entry keeps speaker, icon, and emphasis', () => {
-  const document = buildDocument(html, POST, [entryFromPost(POST, 'Iarwain')], {});
+  const document = buildDocument(html, MAD_INVESTOR, [entryFromPost(MAD_INVESTOR, 'Iarwain')], {});
   assert.ok(
     document.includes(
       '<h2>Keltham (Iarwain) <span class="icon">brooding 1</span></h2>'
@@ -103,7 +91,7 @@ test('an HTML entry keeps speaker, icon, and emphasis', () => {
 
 test('the HTML output escapes text that would otherwise be markup', () => {
   const nasty = {
-    ...POST,
+    ...MAD_INVESTOR,
     subject: 'Tom & Jerry <script>alert(1)</script>',
     description: null,
   };
@@ -126,15 +114,15 @@ test('the HTML output escapes text that would otherwise be markup', () => {
 
 test('both formats carry the scope note when the export is partial', () => {
   const options = { scope: 'Pages 3–7 of 180' };
-  assert.ok(buildDocument(markdown, POST, [], options).includes('Pages 3–7 of 180'));
+  assert.ok(buildDocument(markdown, MAD_INVESTOR, [], options).includes('Pages 3–7 of 180'));
   assert.ok(
-    buildDocument(html, POST, [], options).includes('<p class="meta">Pages 3–7 of 180</p>')
+    buildDocument(html, MAD_INVESTOR, [], options).includes('<p class="meta">Pages 3–7 of 180</p>')
   );
 });
 
 test('a short thread stays in one part in either format', () => {
   for (const format of [markdown, html]) {
-    const parts = splitDocument(format, POST, [entryFromPost(POST, 'Iarwain')], {});
+    const parts = splitDocument(format, MAD_INVESTOR, [entryFromPost(MAD_INVESTOR, 'Iarwain')], {});
     assert.equal(parts.length, 1);
     assert.ok(!parts[0].includes('Part 1 of'));
   }
@@ -149,7 +137,7 @@ test('a long thread splits on entry boundaries with self-contained files', () =>
   }));
 
   for (const format of [markdown, html]) {
-    const parts = splitDocument(format, POST, entries, { maxChars: 900 });
+    const parts = splitDocument(format, MAD_INVESTOR, entries, { maxChars: 900 });
     assert.ok(parts.length > 1, `${format.id} did not split`);
     for (const part of parts) {
       assert.match(part, /Part \d+ of \d+ · entries \d+–\d+/);
@@ -167,7 +155,7 @@ test('every entry survives a split exactly once', () => {
     icon: null,
     html: `<p>${'word '.repeat(60)}</p>`,
   }));
-  const parts = splitDocument(markdown, POST, entries, { maxChars: 900 });
+  const parts = splitDocument(markdown, MAD_INVESTOR, entries, { maxChars: 900 });
   const joined = parts.join('\n');
   for (const { name } of entries) {
     assert.equal(joined.match(new RegExp(`## ${name} `, 'g')).length, 1);
@@ -181,7 +169,7 @@ test('HTML parts are each a complete document', () => {
     icon: null,
     html: `<p>${'word '.repeat(50)}${index}</p>`,
   }));
-  const parts = splitDocument(html, POST, entries, { maxChars: 900 });
+  const parts = splitDocument(html, MAD_INVESTOR, entries, { maxChars: 900 });
 
   assert.ok(parts.length > 1);
   for (const part of parts) {
@@ -192,13 +180,9 @@ test('HTML parts are each a complete document', () => {
 });
 
 test('the rendered page and the API produce the same entries in both formats', () => {
-  const doc = parse(fixture);
-  const fromPage = [...doc.querySelectorAll('.post-container')].map((element) => ({
-    name: element.querySelector('.post-character')?.textContent.trim() || null,
-    username: element.querySelector('.post-author')?.textContent.trim() || null,
-    icon: element.querySelector('.post-icon img')?.getAttribute('title') || null,
-    html: element.querySelector('.post-content')?.innerHTML ?? '',
-  }));
+  // Reads the page through the real function, so a change to those selectors
+  // shows up here instead of being shadowed by a copy of them.
+  const fromPage = entriesFromDocument(parse(fixture));
 
   assert.ok(markdown.entry(fromPage[0], {}).startsWith('## Mountain (Rockeye) [confusion]'));
   assert.ok(html.entry(fromPage[0], {}).includes('<h2>Mountain (Rockeye) '));

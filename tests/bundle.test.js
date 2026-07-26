@@ -4,21 +4,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { JSDOM } from 'jsdom';
+import { NEW_NEIGHBORS as POST } from './fixtures.js';
 import { distFile } from './dist.js';
 
 const fixture = readFileSync(new URL('./fixtures/thread-page.html', import.meta.url), 'utf8');
-
-const POST = {
-  id: 100,
-  subject: 'New neighbors. Just as frustrating.',
-  description: 'Mountain and Elves',
-  num_replies: 369,
-  board: { id: 3, name: 'Sandboxes' },
-  authors: [{ username: 'lintamande' }, { username: 'Rockeye' }],
-  character: { id: 588, name: 'Mountain' },
-  icon: { keyword: 'confusion' },
-  content: '<p>She does not feel any tiles.</p>',
-};
 
 function build() {
   return distFile('bookmarklet.js');

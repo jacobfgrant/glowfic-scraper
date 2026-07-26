@@ -4,8 +4,6 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import {
   entriesFromDocument,
-  entryFromPost,
-  entryFromReply,
   fileStem,
   openingAuthor,
   pageCount,
@@ -13,21 +11,9 @@ import {
   perPageFromDocument,
   replyRangeForPages,
 } from '../src/glowfic.js';
+import { MAD_INVESTOR } from './fixtures.js';
 
 const fixture = readFileSync(new URL('./fixtures/thread-page.html', import.meta.url), 'utf8');
-
-const POST = {
-  id: 4582,
-  subject: 'mad investor chaos and the woman of asmodeus',
-  description: 'some dath ilani are more Chaotic than others, but',
-  num_replies: 4482,
-  board: { id: 215, name: 'planecrash' },
-  section: { id: 703, name: 'planecrash' },
-  authors: [{ username: 'Iarwain' }, { username: 'lintamande' }],
-  character: { id: 11729, name: 'Keltham', screenname: 'lawful chaotic' },
-  icon: { keyword: 'brooding 1' },
-  content: '<p>Keltham is having a <em>very</em> strange day.</p>',
-};
 
 test('thread URLs yield the post id and page', () => {
   assert.deepEqual(parseThreadUrl('https://glowfic.com/posts/4582'), {
@@ -81,7 +67,7 @@ test('the reader per-page setting is read from the page, then the URL', () => {
 });
 
 test('download names are filesystem safe and identify the post', () => {
-  assert.equal(fileStem(POST), 'mad-investor-chaos-and-the-woman-of-asmodeus-4582');
+  assert.equal(fileStem(MAD_INVESTOR), 'mad-investor-chaos-and-the-woman-of-asmodeus-4582');
   assert.equal(fileStem({ id: 7, subject: 'Whose Line Is It, Anyway?!' }), 'whose-line-is-it-anyway-7');
 });
 
@@ -154,4 +140,26 @@ test('thread URLs are recognized on both hosts and rejected elsewhere', async ()
   assert.equal(parseThreadUrl('https://glowfic.com/posts/2652').postId, 2652);
   assert.equal(parseThreadUrl('https://example.com/posts/2652'), null);
   assert.equal(parseThreadUrl('https://glowfic.com.evil.example/posts/2652'), null);
+});
+
+test('the opening author is read from the page when it is on screen', () => {
+  const doc = parse(fixture);
+  assert.equal(openingAuthor(MAD_INVESTOR, [], doc), 'Rockeye');
+});
+
+test('the opening author falls back to the next tag by the same character', () => {
+  // Exporting from a page that does not show the opening post is the whole
+  // reason this exists: the API names a thread's authors but never says which
+  // of them wrote the first entry.
+  const replies = [
+    { character: { id: 99 }, user: { username: 'someone-else' } },
+    { character: { id: 11729 }, user: { username: 'Iarwain' } },
+  ];
+  assert.equal(openingAuthor(MAD_INVESTOR, replies, null), 'Iarwain');
+});
+
+test('an unknown opening author is left out rather than guessed', () => {
+  assert.equal(openingAuthor({ ...MAD_INVESTOR, character: null }, [], null), null);
+  // A character who never tags again is not attributed to a random author.
+  assert.equal(openingAuthor(MAD_INVESTOR, [{ character: { id: 1 }, user: { username: 'x' } }], null), null);
 });

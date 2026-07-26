@@ -5,30 +5,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { JSDOM } from 'jsdom';
+import { NARRATION as REPLY, NEW_NEIGHBORS as POST } from './fixtures.js';
 
 const fixture = readFileSync(new URL('./fixtures/thread-page.html', import.meta.url), 'utf8');
-
-const POST = {
-  id: 100,
-  subject: 'New neighbors. Just as frustrating.',
-  description: 'Mountain and Elves',
-  num_replies: 369,
-  board: { id: 3, name: 'Sandboxes' },
-  section: null,
-  authors: [{ username: 'lintamande' }, { username: 'Rockeye' }],
-  character: { id: 588, name: 'Mountain' },
-  icon: { keyword: 'confusion' },
-  content: '<p>She does not feel any tiles.</p>',
-};
-
-const REPLY = {
-  id: 1,
-  character_name: null,
-  character: null,
-  icon: { keyword: 'Celegorm' },
-  user: { username: 'lintamande' },
-  content: "<p>She's on an ocean.</p>",
-};
 
 function setupPage({ url = 'https://glowfic.com/posts/100', replies = [REPLY] } = {}) {
   const dom = new JSDOM(fixture, { url });
