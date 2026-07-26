@@ -95,18 +95,18 @@ test('Safari gets the bookmark-editing instructions opened', () => {
   const { page } = build();
   const document = open(page, { userAgent: SAFARI_UA });
 
-  assert.equal(document.getElementById('editing').open, true);
-  assert.equal(document.getElementById('editing').querySelector('.yours').hidden, false);
-  assert.equal(document.getElementById('dragging').open, false);
+  assert.equal(document.getElementById('safari').open, true);
+  assert.equal(document.getElementById('safari').querySelector('.yours').hidden, false);
+  assert.equal(document.getElementById('others').open, false);
 });
 
 test('Chrome gets the drag instructions opened', () => {
   const { page } = build();
   const document = open(page, { userAgent: CHROME_UA });
 
-  assert.equal(document.getElementById('dragging').open, true);
-  assert.equal(document.getElementById('dragging').querySelector('.yours').hidden, false);
-  assert.equal(document.getElementById('editing').open, false);
+  assert.equal(document.getElementById('others').open, true);
+  assert.equal(document.getElementById('others').querySelector('.yours').hidden, false);
+  assert.equal(document.getElementById('safari').open, false);
 });
 
 test('the manual section shows the exact text to paste', () => {
@@ -140,7 +140,7 @@ test('the self-contained bookmarklet still fits under the reported Safari ceilin
 
 test('the browser sniff actually reads the user agent', () => {
   const { page } = build();
-  const detected = (userAgent) => open(page, { userAgent }).getElementById('editing').open;
+  const detected = (userAgent) => open(page, { userAgent }).getElementById('safari').open;
 
   assert.equal(detected(SAFARI_UA), true, 'Safari was not detected');
   assert.equal(detected(CHROME_UA), false, 'Chrome was mistaken for Safari');
@@ -183,4 +183,25 @@ test('the privacy policy ships alongside the install page and is linked from it'
   // declared, and "website content" is declared.
   assert.match(policy, /Nothing is sent to the developer/i);
   assert.ok(distFile('index.html').includes('href="privacy/"'));
+});
+
+test('Safari is told to drag first, with the long way round collapsed behind it', () => {
+  const { page } = build();
+  const document = open(page, { userAgent: SAFARI_UA });
+  const safari = document.getElementById('safari');
+
+  // The drag button comes before the fallback, which stays shut until asked
+  // for: leading with the four-step route is what confused a real user.
+  const dragButton = safari.querySelector('a.drag[data-bookmarklet]');
+  const fallback = safari.querySelector('details.fallback');
+
+  assert.ok(dragButton, 'Safari has no drag button');
+  assert.ok(fallback, 'the copy-and-edit route is not behind a disclosure');
+  assert.equal(fallback.open, false, 'the fallback starts open');
+  assert.ok(
+    dragButton.compareDocumentPosition(fallback) & 4,
+    'the fallback comes before the drag button'
+  );
+  assert.ok(fallback.contains(safari.querySelector('[data-copy]')), 'copy button is not in the fallback');
+  assert.match(fallback.querySelector('summary').textContent, /dragging doesn't work/i);
 });

@@ -46,11 +46,11 @@ styling, avatars, and timestamps do not.
 
 ## Install
 
-**Bookmarklet.** Visit the install page — it detects your browser and shows the
-right steps. Chrome, Firefox and Edge drag a button onto the bookmarks bar;
-Safari has to bookmark a page and edit its address, because it refuses
-`javascript:` in the address bar. Locally: `python3 build.py`, then open
-`dist/index.html`.
+**Bookmarklet.** Visit the install page and drag the button onto your bookmarks
+bar — that works in Safari as well as Chrome, Firefox and Edge. Safari refuses
+`javascript:` in the address bar, so if dragging fails there is a
+bookmark-then-edit-the-address route behind a *If dragging doesn't work*
+disclosure. Locally: `python3 build.py`, then open `dist/index.html`.
 
 The bookmark loads its code from wherever the page is served, so fixes reach
 everyone without reinstalling. A self-contained version that depends on nothing

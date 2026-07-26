@@ -36,6 +36,9 @@
     padding: .6rem .75rem; margin: .6rem 0; font-size: .72rem; word-break: break-all;
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace; max-height: 7rem; overflow-y: auto; }
   .note { color: #6a6259; font-size: .88rem; }
+  details.fallback { border: 0; background: none; margin: 1.5rem 0 .25rem; }
+  details.fallback > summary { padding: .5rem 0; font-size: .92rem; }
+  details.fallback .inner { padding: 0; }
   .local { background: #fdf3e0; border: 1px solid #e8d5a8; border-radius: 6px;
     padding: .8rem 1rem; margin: 0 0 1.5rem; font-size: .9rem; }
   .local[hidden] { display: none; }
@@ -72,7 +75,7 @@ Keltham is having a *very* strange day, and it is not getting less strange.
 ## Carissa Sevar (lintamande) [thinking]
 "...that's not what I expected."</pre>
 
-<details id="dragging">
+<details id="others">
   <summary><span>Chrome, Firefox, or Edge</span><span class="yours" hidden>Your browser</span></summary>
   <div class="inner">
     <ol>
@@ -84,22 +87,32 @@ Keltham is having a *very* strange day, and it is not getting less strange.
   </div>
 </details>
 
-<details id="editing">
+<details id="safari">
   <summary><span>Safari</span><span class="yours" hidden>Your browser</span></summary>
   <div class="inner">
-    <p class="note">Safari won't let you paste this kind of link into the address bar,
-    so it takes a couple of extra steps. You only do this once.</p>
     <ol>
-      <li><button class="copy" data-copy>Copy the bookmarklet</button></li>
-      <li>Press <kbd>⌘D</kbd> on any page. Name it <em>Glowfic Transcript</em>,
-        choose <strong>Favorites</strong>, and save.</li>
-      <li>Open <strong>Bookmarks → Edit Bookmarks</strong>, right-click the one you just made,
-        and choose <strong>Edit Address</strong>.</li>
-      <li>Select whatever is there, paste, and press <kbd>Return</kbd>.</li>
+      <li>Make sure your Favorites bar is showing — <kbd>⌘⇧B</kbd>.</li>
+      <li>Drag this button onto it:</li>
     </ol>
-    <p class="note">Dragging the button below onto the Favorites bar sometimes works too,
-    and is quicker when it does:</p>
     <p><a class="drag" data-bookmarklet href="#">Glowfic Transcript</a></p>
+    <p class="note">Then open any thread on glowfic.com and click the bookmark.</p>
+
+    <details class="fallback">
+      <summary><span>If dragging doesn't work</span></summary>
+      <div class="inner">
+        <p class="note">Safari won't let you paste this kind of link into the address
+        bar, so the long way round is to make a bookmark and then edit it. You only
+        do this once.</p>
+        <ol>
+          <li><button class="copy" data-copy>Copy the bookmarklet</button></li>
+          <li>Press <kbd>⌘D</kbd> on any page. Name it <em>Glowfic Transcript</em>,
+            choose <strong>Favorites</strong>, and save.</li>
+          <li>Open <strong>Bookmarks → Edit Bookmarks</strong>, right-click the one
+            you just made, and choose <strong>Edit Address</strong>.</li>
+          <li>Select whatever is there, paste, and press <kbd>Return</kbd>.</li>
+        </ol>
+      </div>
+    </details>
   </div>
 </details>
 
@@ -207,7 +220,7 @@ Keltham is having a *very* strange day, and it is not getting less strange.
   // Open the section that matches this browser, and say so.
   var agent = navigator.userAgent;
   var isSafari = /Safari/.test(agent) && !/Chrome|Chromium|Edg|OPR/.test(agent);
-  var target = document.getElementById(isSafari ? 'editing' : 'dragging');
+  var target = document.getElementById(isSafari ? 'safari' : 'others');
   target.open = true;
   target.querySelector('.yours').hidden = false;
 })();
