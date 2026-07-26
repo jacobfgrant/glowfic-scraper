@@ -63,7 +63,7 @@ test('images are dropped by default and kept on request', () => {
   assert.equal(htmlToCleanHtml('<p>a<img src="x.png" alt="cat">b</p>'), '<p>ab</p>');
   assert.equal(
     htmlToCleanHtml('<p><img src="x.png" alt="cat" width="9"></p>', { images: true }),
-    '<p><img src="x.png" alt="cat"></p>'
+    '<p><img src="https://glowfic.com/x.png" alt="cat"></p>'
   );
 });
 
@@ -87,7 +87,7 @@ test('a div of plain text becomes a paragraph, a div of blocks is unwrapped', ()
 test('an image-only paragraph is not dropped when images are kept', () => {
   assert.equal(
     htmlToCleanHtml('<p><img src="x.png" alt=""></p>', { images: true }),
-    '<p><img src="x.png" alt=""></p>'
+    '<p><img src="https://glowfic.com/x.png" alt=""></p>'
   );
 });
 

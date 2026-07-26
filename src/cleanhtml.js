@@ -2,6 +2,8 @@
 // subset: enough structure to read in a browser, nothing that carries styling,
 // scripting, or the site's own layout.
 
+import { DROPPED, ELEMENT_NODE, HEADINGS, TEXT_NODE, normalizeSpace, safeUrl } from './htmlnodes.js';
+
 const INLINE = new Map([
   ['EM', 'em'],
   ['I', 'em'],
@@ -34,12 +36,7 @@ const BLOCK = new Map([
   ['TD', 'td'],
 ]);
 
-const HEADINGS = new Set(['H1', 'H2', 'H3', 'H4', 'H5', 'H6']);
-const DROPPED = new Set(['SCRIPT', 'STYLE', 'NOSCRIPT', 'TEMPLATE']);
 const VOID_MARKUP = /<(?:img|hr|br)\b/;
-
-const TEXT_NODE = 3;
-const ELEMENT_NODE = 1;
 
 /** Turns a reply's stored HTML into a clean fragment, one block per line. */
 export function htmlToCleanHtml(html, options = {}) {
@@ -87,7 +84,7 @@ function renderChildren(node, opts) {
 
 function renderNode(node, opts) {
   if (node.nodeType === TEXT_NODE) {
-    return escapeHtml(node.nodeValue.replace(/\u00a0/g, ' ').replace(/\s+/g, ' '));
+    return escapeHtml(normalizeSpace(node.nodeValue));
   }
   if (node.nodeType !== ELEMENT_NODE) return '';
 
@@ -142,7 +139,7 @@ function hasContent(html) {
 
 function renderImage(node, opts) {
   if (!opts.images) return '';
-  const src = node.getAttribute('src');
+  const src = safeUrl(node.getAttribute('src'));
   if (!src) return '';
   const alt = escapeHtml(node.getAttribute('alt') || '');
   return `<img src="${escapeHtml(src)}" alt="${alt}">`;
@@ -150,11 +147,9 @@ function renderImage(node, opts) {
 
 function renderLink(node, opts) {
   const inner = renderChildren(node, opts);
-  const href = node.getAttribute('href');
+  const href = safeUrl(node.getAttribute('href'));
+  // An unsafe scheme loses the link but keeps the words, so the reader still
+  // sees what was written.
   if (!opts.links || !href || !hasContent(inner)) return inner;
-  return `<a href="${escapeHtml(absolute(href))}">${inner}</a>`;
-}
-
-function absolute(href) {
-  return href.startsWith('/') ? `https://glowfic.com${href}` : href;
+  return `<a href="${escapeHtml(href)}">${inner}</a>`;
 }

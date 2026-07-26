@@ -1,6 +1,14 @@
 // Converts the HTML that glowfic stores for a reply into compact markdown.
 // The goal is token efficiency for pasting into an LLM chat, not fidelity to
 // the site's rendering, so styling-only markup is discarded.
+//
+// Reply text is written by strangers and lands in a document whose structure
+// carries meaning — `## Character (author)` is how the transcript says who
+// spoke. So anything in reply text that could pass for that structure is
+// escaped: a reply must never be able to mint a heading and put words in
+// someone else's mouth.
+
+import { DROPPED, ELEMENT_NODE, HEADINGS, TEXT_NODE, normalizeSpace, safeUrl } from './htmlnodes.js';
 
 const EMPHASIS = new Map([
   ['EM', '*'],
@@ -15,12 +23,16 @@ const EMPHASIS = new Map([
   ['CODE', '`'],
 ]);
 
-const HEADINGS = new Set(['H1', 'H2', 'H3', 'H4', 'H5', 'H6']);
 const BLOCKS = new Set(['P', 'DIV', 'SECTION', 'ARTICLE', 'ADDRESS', 'FIGURE', 'FIGCAPTION']);
-const DROPPED = new Set(['SCRIPT', 'STYLE', 'NOSCRIPT', 'TEMPLATE']);
 
-const TEXT_NODE = 3;
-const ELEMENT_NODE = 1;
+// A line of only dashes or equals signs turns the line above it into a heading,
+// which is the other way to forge a speaker label. A run of backticks or tildes
+// opens a code fence that would swallow every entry after it.
+const SETEXT_RULE = /^(-+|=+)\s*$/;
+const CODE_FENCE = /^(`{3,}|~{3,})/;
+// Four spaces already means "code block", so those lines are left exactly as
+// they are — they cannot introduce structure and their whitespace is content.
+const INDENTED_CODE = /^ {4}/;
 
 /** Turns a reply's stored HTML into markdown. */
 export function htmlToMarkdown(html, options = {}) {
@@ -40,17 +52,19 @@ function renderChildren(node, opts, ctx) {
 }
 
 function renderNode(node, opts, ctx) {
-  if (node.nodeType === TEXT_NODE) return normalizeText(node.nodeValue);
+  if (node.nodeType === TEXT_NODE) return escapeText(normalizeSpace(node.nodeValue));
   if (node.nodeType !== ELEMENT_NODE) return '';
 
   const tag = node.tagName;
   if (DROPPED.has(tag)) return '';
 
   if (tag === 'BR') return '\n';
-  if (tag === 'HR') return '\n\n---\n\n';
+  // `***` rather than `---`, so a line of dashes is always something a reply
+  // wrote and can be escaped without destroying our own rules.
+  if (tag === 'HR') return '\n\n***\n\n';
   if (tag === 'IMG') return renderImage(node, opts);
   if (tag === 'A') return renderLink(node, opts, ctx);
-  if (tag === 'PRE') return `\n\n\`\`\`\n${node.textContent.trim()}\n\`\`\`\n\n`;
+  if (tag === 'PRE') return renderPre(node);
   if (tag === 'BLOCKQUOTE') return renderBlockquote(node, opts, ctx);
   if (tag === 'UL' || tag === 'OL') return renderList(node, opts, ctx);
   if (tag === 'TABLE') return renderTable(node, opts, ctx);
@@ -70,22 +84,41 @@ function renderNode(node, opts, ctx) {
   return renderChildren(node, opts, ctx);
 }
 
+/**
+ * Escapes what would otherwise be markdown syntax coming from reply text.
+ *
+ * Backslash goes first so it cannot cancel the escapes that follow. Brackets
+ * stop a reply from closing our link syntax and opening its own; `<` stops raw
+ * HTML from reaching a renderer that would run it. Emphasis characters are
+ * deliberately left alone: they cannot forge structure, and escaping them makes
+ * ordinary prose unreadable.
+ */
+function escapeText(text) {
+  return text.replace(/([\\[\]<])/g, '\\$1');
+}
+
+// Indented rather than fenced, so nothing this converter emits can be mistaken
+// for a fence a reply opened.
+function renderPre(node) {
+  const body = node.textContent.replace(/\s+$/, '');
+  if (!body.trim()) return '';
+  const lines = body.split('\n').map((line) => `    ${line}`);
+  return `\n\n${lines.join('\n')}\n\n`;
+}
+
 function renderImage(node, opts) {
   if (!opts.images) return '';
-  const src = node.getAttribute('src') || '';
-  const alt = (node.getAttribute('alt') || '').trim();
+  const src = safeUrl(node.getAttribute('src'));
+  const alt = escapeText((node.getAttribute('alt') || '').trim());
   return src ? `![${alt}](${src})` : '';
 }
 
 function renderLink(node, opts, ctx) {
   const inner = renderChildren(node, opts, ctx);
-  const href = node.getAttribute('href');
+  const href = safeUrl(node.getAttribute('href'));
+  // An unsafe scheme loses the link but keeps the words.
   if (!opts.links || !href || !inner.trim()) return inner;
-  return `[${inner.trim()}](${absolute(href)})`;
-}
-
-function absolute(href) {
-  return href.startsWith('/') ? `https://glowfic.com${href}` : href;
+  return `[${inner.trim()}](${href})`;
 }
 
 function renderBlockquote(node, opts, ctx) {
@@ -121,10 +154,6 @@ function renderTable(node, opts, ctx) {
   return `\n\n${[header, divider, ...rest].join('\n')}\n\n`;
 }
 
-function normalizeText(value) {
-  return value.replace(/\u00a0/g, ' ').replace(/\s+/g, ' ');
-}
-
 /**
  * Applies an emphasis marker without trapping whitespace inside it, since
  * markdown ignores `* foo *` but honours ` *foo* `.
@@ -138,30 +167,26 @@ function wrap(inner, marker) {
 }
 
 function tidy(text) {
-  let inCodeFence = false;
   return text
     .replace(/[ \t]+\n/g, '\n')
     .replace(/\n{3,}/g, '\n\n')
     .split('\n')
-    .map((line) => {
-      if (line.trimStart().startsWith('```')) {
-        inCodeFence = !inCodeFence;
-        return line;
-      }
-      return inCodeFence ? line : tidyLine(line);
-    })
+    .map(tidyLine)
     .join('\n')
     .trim();
 }
 
 function tidyLine(line) {
+  if (INDENTED_CODE.test(line)) return line;
+
   const indent = line.slice(0, line.length - line.trimStart().length);
-  const rest = line
+  let rest = line
     .trimStart()
     // Dropping an inline element (an icon image, say) can leave a double space.
-    .replace(/ {2,}/g, ' ')
-    // Prose that happens to start with # would otherwise read as a heading and
-    // break the speaker structure the transcript relies on.
-    .replace(/^#/, '\\#');
+    .replace(/ {2,}/g, ' ');
+
+  if (rest.startsWith('#') || SETEXT_RULE.test(rest) || CODE_FENCE.test(rest)) {
+    rest = `\\${rest}`;
+  }
   return `${indent}${rest}`;
 }

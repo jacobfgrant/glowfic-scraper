@@ -6,9 +6,21 @@ import { escapeHtml, htmlToCleanHtml } from './cleanhtml.js';
 
 const DEFAULT_MAX_CHARS = 300_000;
 
+/**
+ * Character names, icon keywords, thread subjects and descriptions are all
+ * chosen by the people being exported. A line break in any of them would let
+ * one become a second `## Speaker` heading, so they are flattened to one line
+ * before they go anywhere near the document structure.
+ */
+function oneLine(value) {
+  return String(value ?? '').replace(/\s+/g, ' ').trim();
+}
+
 export function speakerLabel({ name, username }) {
-  if (name && username && name !== username) return `${name} (${username})`;
-  return name || username || 'unknown';
+  const character = oneLine(name);
+  const author = oneLine(username);
+  if (character && author && character !== author) return `${character} (${author})`;
+  return character || author || 'unknown';
 }
 
 /** The facts both formats put at the top of every file. */
@@ -16,11 +28,11 @@ export function documentFacts(post, { scope, part } = {}) {
   const authors = (post.authors ?? []).map((author) => author.username).join(' & ');
   const board = [...new Set([post.board?.name, post.section?.name].filter(Boolean))].join(' / ');
   return {
-    title: post.subject ?? 'Glowfic thread',
-    summary: [board, authors, `${post.num_replies} replies`].filter(Boolean).join(' · '),
+    title: oneLine(post.subject) || 'Glowfic thread',
+    summary: oneLine([board, authors, `${post.num_replies} replies`].filter(Boolean).join(' · ')),
     url: `https://glowfic.com/posts/${post.id}`,
-    description: post.description || null,
-    notes: [scope, part].filter(Boolean),
+    description: oneLine(post.description) || null,
+    notes: [scope, part].filter(Boolean).map(oneLine),
   };
 }
 
@@ -31,7 +43,7 @@ const markdown = {
   mime: 'text/markdown',
 
   entry(entry, options) {
-    const icon = options.icons !== false && entry.icon ? ` [${entry.icon}]` : '';
+    const icon = options.icons !== false && entry.icon ? ` [${oneLine(entry.icon)}]` : '';
     return `## ${speakerLabel(entry)}${icon}\n${htmlToMarkdown(entry.html, options)}`;
   },
 
@@ -79,7 +91,7 @@ const html = {
 
   entry(entry, options) {
     const icon = options.icons !== false && entry.icon
-      ? ` <span class="icon">${escapeHtml(entry.icon)}</span>`
+      ? ` <span class="icon">${escapeHtml(oneLine(entry.icon))}</span>`
       : '';
     const body = htmlToCleanHtml(entry.html, options);
     return `<section class="entry">\n<h2>${escapeHtml(speakerLabel(entry))}${icon}</h2>\n${body}\n</section>`;
@@ -98,6 +110,11 @@ const html = {
       '<!doctype html>',
       '<html lang="en">',
       '<meta charset="utf-8">',
+      // A second line of defence for a file made of someone else's writing:
+      // even if something unsafe reached the markup, this document can run no
+      // script and fetch nothing but images.
+      '<meta http-equiv="Content-Security-Policy" ' +
+        'content="default-src \'none\'; style-src \'unsafe-inline\'; img-src https: data:">',
       '<meta name="viewport" content="width=device-width, initial-scale=1">',
       `<title>${escapeHtml(facts.title)}</title>`,
       `<style>\n${CSS}\n</style>`,

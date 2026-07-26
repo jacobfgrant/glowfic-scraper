@@ -62,9 +62,13 @@ test('the built bundle runs in a page and opens the panel', async () => {
 
 test('the bundle keeps module scopes apart', () => {
   const source = build();
-  // Two modules declare a HEADINGS of their own; flattening them into one
-  // scope would be a redeclaration error at parse time.
-  assert.ok(source.split('const HEADINGS').length > 2, 'expected the collision to still exist');
+  // Both converters define a renderChildren and a renderNode of their own;
+  // flattening them into one scope would be a redeclaration error at parse
+  // time. If this premise ever stops holding, find another duplicate rather
+  // than deleting the test — it is the only thing checking the bundler.
+  for (const name of ['function renderChildren', 'function renderNode']) {
+    assert.ok(source.split(name).length > 2, `expected ${name} to still collide`);
+  }
   assert.doesNotThrow(() => new Function(source));
 });
 
