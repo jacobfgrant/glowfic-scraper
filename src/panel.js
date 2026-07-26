@@ -54,6 +54,13 @@ button.action {
 }
 button.action.secondary { background: #efece7; color: #33302c; }
 button.action:disabled { opacity: .5; cursor: default; }
+.parts { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+.parts[hidden] { display: none; }
+.parts .hint { flex-basis: 100%; font-size: 11px; color: #6a6259; }
+.parts button {
+  min-width: 30px; padding: 3px 6px; font: inherit; font-size: 11px; cursor: pointer;
+  background: #efece7; color: #33302c; border: 1px solid #ddd7ce; border-radius: 4px;
+}
 .status { margin-top: 10px; font-size: 12px; color: #6a6259; min-height: 16px; }
 .status.error { color: #a3282d; }
 .result { margin-top: 12px; padding-top: 10px; border-top: 1px solid #e6e1d8; }
@@ -118,6 +125,7 @@ function template() {
         <button class="action secondary copy">Copy</button>
         <button class="action download">Download</button>
       </div>
+      <div class="parts" hidden></div>
     </div>
   </div>
 </div>`;
@@ -126,6 +134,7 @@ function template() {
 // Above roughly a quarter million characters a transcript stops being something
 // you can comfortably paste, so the panel steers toward split downloads.
 const PASTE_LIMIT_CHARS = 250_000;
+const SAVE_GAP_MS = 400;
 
 class Panel {
   constructor(root, thread) {
@@ -282,9 +291,47 @@ class Panel {
   }
 
   updateDownloadLabel() {
-    const count = this.parts().length;
+    const parts = this.parts();
     this.$('.download').textContent =
-      count > 1 ? `Download ${count} files` : `Download .${this.format.extension}`;
+      parts.length > 1 ? `Download ${parts.length} files` : `Download .${this.format.extension}`;
+    this.renderPartButtons(parts.length);
+  }
+
+  /**
+   * Safari is unreliable about saving several blobs in a burst, so every part
+   * also gets its own button as a way out when the batch save drops files.
+   */
+  renderPartButtons(count) {
+    const container = this.$('.parts');
+    container.textContent = '';
+    container.hidden = count < 2;
+    if (container.hidden) return;
+
+    const hint = document.createElement('span');
+    hint.className = 'hint';
+    hint.textContent = 'Or save one at a time:';
+    container.appendChild(hint);
+
+    for (let index = 0; index < count; index += 1) {
+      const button = document.createElement('button');
+      button.textContent = String(index + 1);
+      button.title = `Save part ${index + 1} of ${count}`;
+      button.addEventListener('click', () => this.savePart(index));
+      container.appendChild(button);
+    }
+  }
+
+  savePart(index) {
+    const parts = this.parts();
+    const part = parts[index];
+    if (!part) return;
+    save(part, this.partName(index, parts.length), this.format.mime);
+    this.status(`Saved part ${index + 1} of ${parts.length}.`);
+  }
+
+  partName(index, total) {
+    const suffix = total > 1 ? `-part${index + 1}` : '';
+    return `${fileStem(this.post)}${suffix}.${this.format.extension}`;
   }
 
   async copy() {
@@ -299,13 +346,17 @@ class Panel {
 
   async download() {
     const parts = this.parts();
-    const stem = fileStem(this.post);
-    const { extension, mime } = this.format;
-    parts.forEach((text, index) => {
-      const suffix = parts.length > 1 ? `-part${index + 1}` : '';
-      save(text, `${stem}${suffix}.${extension}`, mime);
-    });
-    this.status(`Saved ${parts.length} file${parts.length > 1 ? 's' : ''}.`);
+    for (const [index, text] of parts.entries()) {
+      save(text, this.partName(index, parts.length), this.format.mime);
+      this.status(`Saving ${index + 1} of ${parts.length}…`);
+      // Spaced out because browsers throttle or silently drop a burst of saves.
+      if (index < parts.length - 1) await sleep(SAVE_GAP_MS);
+    }
+    this.status(
+      parts.length > 1
+        ? `Saved ${parts.length} files. If any are missing, use the numbered buttons.`
+        : 'Saved.'
+    );
   }
 
   status(message, isError = false) {
@@ -319,11 +370,19 @@ class Panel {
   }
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 function save(text, filename, mime) {
   const url = URL.createObjectURL(new Blob([text], { type: mime }));
   const link = document.createElement('a');
   link.href = url;
   link.download = filename;
+  // Safari ignores the download attribute on an anchor that is not in the
+  // document, and opens the blob instead of saving it.
+  document.body.appendChild(link);
   link.click();
+  link.remove();
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }

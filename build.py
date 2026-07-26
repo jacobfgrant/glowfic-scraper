@@ -8,6 +8,7 @@ inlines them in dependency order and drops the module syntax.
 
 from __future__ import annotations
 
+import hashlib
 import html
 import re
 from pathlib import Path
@@ -19,6 +20,7 @@ ROOT = Path(__file__).parent
 SRC = ROOT / "src"
 DIST = ROOT / "dist"
 EXTENSION = ROOT / "extension"
+WEB = ROOT / "web"
 ENTRY = "main.js"
 
 IMPORT_RE = re.compile(
@@ -117,46 +119,16 @@ def bundle() -> str:
     return f"(function () {{\n'use strict';\n{body}\n}})();"
 
 
-def install_page(bookmarklet: str, size_kb: float) -> str:
-    return f"""<!doctype html>
-<html lang="en">
-<meta charset="utf-8">
-<title>Install: Glowfic → clean transcript</title>
-<style>
-  body {{ font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, sans-serif;
-         max-width: 40rem; margin: 3rem auto; padding: 0 1.25rem; color: #24211d; }}
-  h1 {{ font-size: 1.5rem; }}
-  .drag {{ display: inline-block; margin: 1.5rem 0; padding: .7rem 1.2rem; background: #6d4c7d;
-           color: #fff; border-radius: 6px; text-decoration: none; font-weight: 600; }}
-  ol {{ padding-left: 1.2rem; }}
-  li {{ margin: .5rem 0; }}
-  code {{ background: #f1eee9; padding: .1rem .3rem; border-radius: 3px; font-size: .9em; }}
-  .note {{ color: #6a6259; font-size: .9rem; border-top: 1px solid #e6e1d8;
-           margin-top: 2.5rem; padding-top: 1rem; }}
-</style>
-
-<h1>Glowfic → clean transcript</h1>
-<p>Turns a glowfic thread into a stripped-down markdown transcript you can paste
-into a chat window or attach as a file.</p>
-
-<ol>
-  <li>Make sure your bookmarks bar is visible — <code>⌘⇧B</code> in Chrome.</li>
-  <li>Drag this button up onto it:</li>
-</ol>
-
-<p><a class="drag" href="{html.escape(bookmarklet, quote=True)}">Glowfic → transcript</a></p>
-
-<ol start="3">
-  <li>Open any thread on <code>glowfic.com</code> and click the bookmark.</li>
-  <li>Pick whole thread, this page, or a page range, then Copy or Download.</li>
-</ol>
-
-<p class="note">Clicking the button on this page does nothing — it only works on a
-glowfic thread. It reads threads using your existing glowfic login, so
-access-locked threads work exactly as they do when you are reading them.
-Bookmarklet size: {size_kb:.1f} KB.</p>
-</html>
-"""
+def install_page(self_contained: str, version: str) -> str:
+    """Fills in the install page. It works out its own loader URL in the browser,
+    so the same file works from Pages, S3, or anywhere else it is served."""
+    template = (WEB / "index.html").read_text()
+    page = template.replace("{{SELF_CONTAINED}}", html.escape(self_contained, quote=True))
+    page = page.replace("{{VERSION}}", version)
+    leftover = re.findall(r"\{\{(\w+)\}\}", page)
+    if leftover:
+        raise SystemExit(f"install page has unfilled placeholders: {', '.join(leftover)}")
+    return page
 
 
 def build_extension(source: str) -> Path:
@@ -171,21 +143,39 @@ def build_extension(source: str) -> Path:
     return target
 
 
+# Reported ceiling for a javascript: bookmarklet in Safari. Undocumented by
+# Apple and only ever confirmed by third-party testing, but the failure mode is
+# a bookmark that silently does nothing, so the build warns well before it.
+SAFARI_URL_LIMIT = 65_536
+
+
 def main() -> None:
     source = compact(bundle())
     bookmarklet = "javascript:" + quote(source, safe="")
+    version = hashlib.sha256(source.encode()).hexdigest()[:8]
 
     DIST.mkdir(exist_ok=True)
     (DIST / "bookmarklet.js").write_text(source)
     (DIST / "bookmarklet.txt").write_text(bookmarklet)
-    (DIST / "install.html").write_text(install_page(bookmarklet, len(bookmarklet) / 1024))
+    # The name the loader bookmarklet fetches, and the page that installs it.
+    (DIST / "glowfic.js").write_text(source)
+    (DIST / "index.html").write_text(install_page(bookmarklet, version))
     extension = build_extension(source)
 
+    used = len(bookmarklet) / SAFARI_URL_LIMIT
     print(f"modules   : {', '.join(resolve(ENTRY))}")
+    print(f"version   : {version}")
     print(f"source    : {len(source) / 1024:.1f} KB")
-    print(f"url       : {len(bookmarklet) / 1024:.1f} KB")
-    print(f"install   : {DIST / 'install.html'}")
+    print(f"url       : {len(bookmarklet) / 1024:.1f} KB ({used:.0%} of the Safari ceiling)")
+    print(f"install   : {DIST / 'index.html'}")
     print(f"extension : {extension}")
+
+    if used > 0.8:
+        print(
+            f"\nWARNING: the self-contained bookmarklet is at {used:.0%} of the reported\n"
+            f"Safari limit ({SAFARI_URL_LIMIT:,} bytes), past which bookmarklets silently\n"
+            "do nothing. The hosted loader is unaffected."
+        )
 
 
 if __name__ == "__main__":

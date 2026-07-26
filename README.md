@@ -42,14 +42,23 @@ styling, avatars, and timestamps do not.
 
 ## Install
 
-Either form does the same thing and shares the same code.
+**Bookmarklet.** Visit the install page — it detects your browser and shows the
+right steps. Chrome, Firefox and Edge drag a button onto the bookmarks bar;
+Safari has to bookmark a page and edit its address, because it refuses
+`javascript:` in the address bar. Locally: `python3 build.py`, then open
+`dist/index.html`.
 
-**Bookmarklet.** Run `python3 build.py`, open `dist/install.html`, and drag the
-button onto your bookmarks bar. Open any thread and click it.
+The bookmark loads its code from wherever the page is served, so fixes reach
+everyone without reinstalling. A self-contained version that depends on nothing
+is on the same page, under *Self-contained version*.
 
 **Chrome extension.** Run `python3 build.py`, then in `chrome://extensions`
 enable Developer mode and *Load unpacked* → `dist/extension`. A toolbar button
 appears; click it on any thread.
+
+Safari can load that same directory through *Develop → Add Temporary
+Extension…*, with no signing and no Xcode — useful for checking rendering,
+though it expires after 24 hours or when Safari quits.
 
 ## Using it
 
@@ -112,9 +121,32 @@ builds the real bundle and runs it in a page, which is what catches scope
 collisions; a syntax check alone does not. None of it substitutes for clicking
 the real thing in Chrome.
 
-## Publishing the extension
+## Publishing
 
-Not done yet. It needs a $5 one-time developer registration, a store listing
-with screenshots, and a privacy disclosure — which is short, since the extension
+The install page and the loader script deploy to GitHub Pages on every push to
+the default branch, via `.github/workflows/pages.yml`, which runs the tests
+first. Nothing generated is committed — the workflow builds `dist/` and uploads
+it, so the deployed page is always the current source.
+
+**Chrome Web Store** is a $5 one-time registration plus a listing: screenshots,
+a description, and a privacy disclosure, which is short since the extension
 collects nothing. The permission profile is deliberately minimal to keep review
 quick.
+
+**Firefox** is free to publish on AMO, but not quite a drop-in port: Firefox
+implements MV3 background scripts as non-persistent event pages, so the manifest
+needs a `background.scripts` key alongside `service_worker`.
+
+**Safari is not worth it.** A Safari web extension has to ship inside a signed
+native app, which requires the Apple Developer Program at $99/year. There is no
+free path for personal use either: "Allow Unsigned Extensions" resets every time
+Safari quits, personal-team signing does not avoid it, and *Add Temporary
+Extension…* expires within a day. Safari users get the bookmarklet.
+
+## Size ceiling
+
+Safari is reported — by third-party testing, not by Apple — to cap
+`javascript:` bookmarklets around 64 KB, past which they silently do nothing.
+`build.py` prints how much of that the self-contained build uses and warns above
+80%. It is already past that mark, which is why the loader is the default: it
+stays a couple of hundred bytes no matter how large the program gets.

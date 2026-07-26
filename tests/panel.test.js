@@ -219,3 +219,74 @@ test('switching format changes the output, extension, and size without refetchin
   assert.ok(panel.output().includes('<h2>Mountain (Rockeye) <span class="icon">confusion</span></h2>'));
   panel.close();
 });
+
+test('a split export offers a button per part for browsers that drop batch saves', async () => {
+  const bulky = Array.from({ length: 12 }, (_, i) => ({
+    ...REPLY,
+    id: i,
+    content: `<p>${'word '.repeat(2000)}</p>`,
+  }));
+  const { panel, dom } = await openReadyPanel({ replies: bulky });
+  const $ = (selector) => panel.root.querySelector(selector);
+
+  const saved = [];
+  globalThis.URL.createObjectURL = () => 'blob:test';
+  globalThis.URL.revokeObjectURL = () => {};
+  const realCreate = dom.window.document.createElement.bind(dom.window.document);
+  dom.window.document.createElement = (tag) => {
+    const element = realCreate(tag);
+    if (tag === 'a') element.click = () => saved.push(element.download);
+    return element;
+  };
+
+  $('input[name=scope][value=all]').checked = true;
+  $('.fetch').click();
+  await panel.busy;
+
+  $('.chunk').value = '20';
+  $('.chunk').dispatchEvent(new dom.window.Event('input'));
+
+  const count = panel.parts().length;
+  assert.ok(count > 2, `expected several parts, got ${count}`);
+  assert.equal($('.parts').hidden, false);
+  assert.equal($('.parts').querySelectorAll('button').length, count);
+
+  $('.parts').querySelectorAll('button')[1].click();
+  assert.deepEqual(saved, ['new-neighbors-just-as-frustrating-100-part2.md']);
+  assert.match($('.status').textContent, /Saved part 2 of \d+/);
+  panel.close();
+});
+
+test('a whole-thread download saves every part, spaced out', async () => {
+  const bulky = Array.from({ length: 12 }, (_, i) => ({
+    ...REPLY,
+    id: i,
+    content: `<p>${'word '.repeat(2000)}</p>`,
+  }));
+  const { panel, dom } = await openReadyPanel({ replies: bulky });
+  const $ = (selector) => panel.root.querySelector(selector);
+
+  const saved = [];
+  globalThis.URL.createObjectURL = () => 'blob:test';
+  globalThis.URL.revokeObjectURL = () => {};
+  const realCreate = dom.window.document.createElement.bind(dom.window.document);
+  dom.window.document.createElement = (tag) => {
+    const element = realCreate(tag);
+    if (tag === 'a') element.click = () => saved.push(element.download);
+    return element;
+  };
+
+  $('input[name=scope][value=all]').checked = true;
+  $('.fetch').click();
+  await panel.busy;
+  $('.chunk').value = '20';
+  $('.chunk').dispatchEvent(new dom.window.Event('input'));
+
+  const expected = panel.parts().length;
+  await panel.download();
+
+  assert.equal(saved.length, expected);
+  assert.equal(new Set(saved).size, expected, 'parts overwrote each other');
+  assert.match($('.status').textContent, /Saved \d+ files/);
+  panel.close();
+});

@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Glowfic → clean transcript</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { max-width: 40rem; margin: 0 auto; padding: 3rem 1.25rem 5rem;
+    font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, sans-serif;
+    color: #24211d; background: #fdfcfa; }
+  h1 { font-size: 1.6rem; margin: 0 0 .4rem; }
+  h2 { font-size: 1.05rem; margin: 0; }
+  .lede { color: #6a6259; margin: 0 0 2rem; }
+  pre.sample { background: #f4f1ec; border: 1px solid #e6e1d8; border-radius: 6px;
+    padding: .9rem 1rem; overflow-x: auto; font-size: .8rem; line-height: 1.5; margin: 0 0 2.5rem; }
+  .drag { display: inline-block; padding: .7rem 1.15rem; background: #6d4c7d; color: #fff;
+    border-radius: 6px; text-decoration: none; font-weight: 600; cursor: grab; }
+  button.copy { padding: .55rem 1rem; font: inherit; font-weight: 600; cursor: pointer;
+    background: #6d4c7d; color: #fff; border: 0; border-radius: 6px; }
+  details { border: 1px solid #e6e1d8; border-radius: 8px; padding: 0; margin: 0 0 .75rem;
+    background: #fff; }
+  details[open] { padding-bottom: .5rem; }
+  summary { padding: .85rem 1rem; cursor: pointer; font-weight: 600; list-style: none;
+    display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+  summary::-webkit-details-marker { display: none; }
+  summary::after { content: "▾"; color: #9b948a; font-weight: 400; }
+  details[open] summary::after { content: "▴"; }
+  .yours { font-size: .7rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+    color: #6d4c7d; }
+  .inner { padding: 0 1rem; }
+  ol { padding-left: 1.15rem; margin: .25rem 0 1rem; }
+  li { margin: .45rem 0; }
+  kbd { background: #f4f1ec; border: 1px solid #ddd7ce; border-bottom-width: 2px;
+    border-radius: 4px; padding: .05rem .35rem; font-size: .85em; font-family: inherit; }
+  code.snippet { display: block; background: #f4f1ec; border: 1px solid #e6e1d8; border-radius: 6px;
+    padding: .6rem .75rem; margin: .6rem 0; font-size: .72rem; word-break: break-all;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace; max-height: 7rem; overflow-y: auto; }
+  .note { color: #6a6259; font-size: .88rem; }
+  .footer { margin-top: 3rem; padding-top: 1.25rem; border-top: 1px solid #e6e1d8;
+    color: #6a6259; font-size: .85rem; }
+  .footer h3 { font-size: .95rem; color: #24211d; margin: 1.5rem 0 .35rem; }
+  @media (prefers-color-scheme: dark) {
+    body { background: #1c1a18; color: #ddd8d0; }
+    .lede, .note, .footer { color: #9b948a; }
+    pre.sample, code.snippet, kbd { background: #262320; border-color: #35312d; }
+    details { background: #211f1c; border-color: #35312d; }
+    .footer { border-color: #35312d; }
+    .footer h3 { color: #ddd8d0; }
+    .yours { color: #c0a3d0; }
+  }
+</style>
+
+<h1>Glowfic → clean transcript</h1>
+<p class="lede">Turns a glowfic thread into a stripped-down transcript you can paste
+into a chat window or attach as a file. One click, no account, nothing to install.</p>
+
+<pre class="sample"># mad investor chaos and the woman of asmodeus
+planecrash · Iarwain &amp; lintamande · 4482 replies
+
+## Keltham (Iarwain) [brooding 1]
+Keltham is having a *very* strange day, and it is not getting less strange.
+
+## Carissa Sevar (lintamande) [thinking]
+"...that's not what I expected."</pre>
+
+<details id="dragging">
+  <summary><span>Chrome, Firefox, or Edge</span><span class="yours" hidden>Your browser</span></summary>
+  <div class="inner">
+    <ol>
+      <li>Make sure your bookmarks bar is showing — <kbd>⌘⇧B</kbd>, or <kbd>Ctrl⇧B</kbd> on Windows.</li>
+      <li>Drag this button onto it:</li>
+    </ol>
+    <p><a class="drag" data-bookmarklet href="#">Glowfic → transcript</a></p>
+    <p class="note">Then open any thread on glowfic.com and click the bookmark.</p>
+  </div>
+</details>
+
+<details id="editing">
+  <summary><span>Safari</span><span class="yours" hidden>Your browser</span></summary>
+  <div class="inner">
+    <p class="note">Safari won't let you paste this kind of link into the address bar,
+    so it takes a couple of extra steps. You only do this once.</p>
+    <ol>
+      <li><button class="copy" data-copy>Copy the bookmarklet</button></li>
+      <li>Press <kbd>⌘D</kbd> on any page. Name it <em>Glowfic → transcript</em>,
+        choose <strong>Favorites</strong>, and save.</li>
+      <li>Open <strong>Bookmarks → Edit Bookmarks</strong>, right-click the one you just made,
+        and choose <strong>Edit Address</strong>.</li>
+      <li>Select whatever is there, paste, and press <kbd>Return</kbd>.</li>
+    </ol>
+    <p class="note">Dragging the button below onto the Favorites bar sometimes works too,
+    and is quicker when it does:</p>
+    <p><a class="drag" data-bookmarklet href="#">Glowfic → transcript</a></p>
+  </div>
+</details>
+
+<details id="manual">
+  <summary><span>Any other browser, or doing it by hand</span></summary>
+  <div class="inner">
+    <p class="note">Make a new bookmark and set its address to exactly this:</p>
+    <code class="snippet" data-snippet></code>
+    <p><button class="copy" data-copy>Copy to clipboard</button></p>
+  </div>
+</details>
+
+<div class="footer">
+  <p>Clicking the purple button on <em>this</em> page does nothing — it only works
+  on a glowfic thread.</p>
+
+  <h3>What it does with your account</h3>
+  <p>Nothing. It reads threads using the glowfic login you already have in this browser,
+  so locked threads work exactly as they do when you're reading them. No password is
+  asked for, nothing is stored, and nothing is sent anywhere except to glowfic.com.</p>
+
+  <h3>Updates</h3>
+  <p>The bookmarklet above loads its code from this page's address each time you use it,
+  so fixes reach you without reinstalling. If you'd rather it never call out to anywhere,
+  use the self-contained version below — it's the whole program in one bookmark, and you'd
+  re-add it to pick up changes.</p>
+
+  <details>
+    <summary><span>Self-contained version</span></summary>
+    <div class="inner">
+      <p class="note">Same program, no dependency on this site. It's a very long bookmark;
+      drag it rather than copying it if you can.</p>
+      <p><a class="drag" href="{{SELF_CONTAINED}}">Glowfic → transcript (offline)</a></p>
+      <p><button class="copy" data-copy-selfcontained>Copy to clipboard</button></p>
+    </div>
+  </details>
+
+  <p style="margin-top:2rem">Version <code>{{VERSION}}</code>.</p>
+</div>
+
+<script>
+(function () {
+  var version = '{{VERSION}}';
+  var base = location.href.split('#')[0].split('?')[0].replace(/[^/]*$/, '');
+  var loader = "javascript:(function(){var s=document.createElement('script');" +
+    "s.src='" + base + "glowfic.js?v=" + version + "';document.body.appendChild(s);})();";
+
+  var links = document.querySelectorAll('[data-bookmarklet]');
+  for (var i = 0; i < links.length; i++) links[i].href = loader;
+
+  var snippet = document.querySelector('[data-snippet]');
+  if (snippet) snippet.textContent = loader;
+
+  function copyText(text, button) {
+    var done = function () {
+      var original = button.textContent;
+      button.textContent = 'Copied';
+      setTimeout(function () { button.textContent = original; }, 1600);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, function () { fallback(text, done); });
+    } else {
+      fallback(text, done);
+    }
+  }
+
+  function fallback(text, done) {
+    var area = document.createElement('textarea');
+    area.value = text;
+    area.style.position = 'fixed';
+    area.style.opacity = '0';
+    document.body.appendChild(area);
+    area.select();
+    try { document.execCommand('copy'); done(); } catch (error) { /* user copies by hand */ }
+    area.remove();
+  }
+
+  function wire(selector, getText) {
+    var buttons = document.querySelectorAll(selector);
+    for (var i = 0; i < buttons.length; i++) {
+      (function (button) {
+        button.addEventListener('click', function () { copyText(getText(), button); });
+      })(buttons[i]);
+    }
+  }
+
+  wire('[data-copy]', function () { return loader; });
+  wire('[data-copy-selfcontained]', function () {
+    return document.querySelector('.footer a.drag').href;
+  });
+
+  // Open the section that matches this browser, and say so.
+  var agent = navigator.userAgent;
+  var isSafari = /Safari/.test(agent) && !/Chrome|Chromium|Edg|OPR/.test(agent);
+  var target = document.getElementById(isSafari ? 'editing' : 'dragging');
+  target.open = true;
+  target.querySelector('.yours').hidden = false;
+})();
+</script>
+</html>
