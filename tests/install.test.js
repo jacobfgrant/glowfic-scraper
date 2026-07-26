@@ -2,34 +2,27 @@
 // terminal, so it gets tested like code: built, loaded, and clicked.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
 import { JSDOM, ResourceLoader } from 'jsdom';
-
-const root = fileURLToPath(new URL('..', import.meta.url));
+import { distFile } from './dist.js';
 
 const CHROME_UA =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0 Safari/537.36';
 const SAFARI_UA =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Safari/605.1.15';
 
-let built = false;
 function build() {
-  if (!built) {
-    const result = spawnSync('python3', ['build.py'], { cwd: root, encoding: 'utf8' });
-    assert.equal(result.status, 0, `build.py failed:\n${result.stderr}`);
-    built = true;
-  }
-  const read = (name) => readFileSync(new URL(`../dist/${name}`, import.meta.url), 'utf8');
-  return { page: read('index.html'), script: read('glowfic.js'), bundle: read('bookmarklet.js') };
+  return {
+    page: distFile('index.html'),
+    script: distFile('transcript.js'),
+    bundle: distFile('bookmarklet.js'),
+  };
 }
 
 // jsdom ignores a top-level `userAgent` option; it only takes effect through a
 // ResourceLoader, and getting that wrong makes browser-detection tests pass for
 // the wrong reason.
-function render(page, { url = 'https://someone.github.io/glowfic-scraper/', userAgent } = {}) {
+function render(page, { url = 'https://someone.github.io/glowfic-transcript/', userAgent } = {}) {
   return new JSDOM(page, {
     url,
     resources: new ResourceLoader({ userAgent }),
@@ -59,7 +52,7 @@ test('the loader points at the script beside the page, with a content version', 
   assert.ok(href.startsWith('javascript:'), href.slice(0, 40));
   const digest = createHash('sha256').update(script).digest('hex').slice(0, 8);
   assert.ok(
-    href.includes(`https://someone.github.io/glowfic-scraper/glowfic.js?v=${digest}`),
+    href.includes(`https://someone.github.io/glowfic-transcript/transcript.js?v=${digest}`),
     href
   );
   // The version has to track the code, or a stale cache strands people.
@@ -73,7 +66,7 @@ test('the loader follows wherever the page is served from', () => {
     userAgent: CHROME_UA,
   });
   const href = document.querySelector('[data-bookmarklet]').href;
-  assert.ok(href.includes("s.src='https://glowfic.example.com/tools/glowfic.js?v="), href);
+  assert.ok(href.includes("s.src='https://glowfic.example.com/tools/transcript.js?v="), href);
   assert.ok(!href.includes('install.html'), 'the page filename leaked into the loader');
 });
 
@@ -95,7 +88,7 @@ test('the loader is valid javascript that injects the script', () => {
   dom.window.eval(code);
   const injected = dom.window.document.querySelector('script');
   assert.ok(injected, 'the loader did not add a script tag');
-  assert.ok(injected.src.endsWith('.js') || injected.src.includes('glowfic.js'), injected.src);
+  assert.ok(injected.src.endsWith('.js') || injected.src.includes('transcript.js'), injected.src);
 });
 
 test('Safari gets the bookmark-editing instructions opened', () => {

@@ -11,6 +11,7 @@ from __future__ import annotations
 import hashlib
 import html
 import re
+import shutil
 from pathlib import Path
 from urllib.parse import quote
 
@@ -154,11 +155,16 @@ def main() -> None:
     bookmarklet = "javascript:" + quote(source, safe="")
     version = hashlib.sha256(source.encode()).hexdigest()[:8]
 
-    DIST.mkdir(exist_ok=True)
+    # Everything here is generated, and the whole directory is what gets
+    # deployed, so a renamed or dropped file must not linger and go out stale.
+    if DIST.exists():
+        shutil.rmtree(DIST)
+    DIST.mkdir()
+
     (DIST / "bookmarklet.js").write_text(source)
     (DIST / "bookmarklet.txt").write_text(bookmarklet)
     # The name the loader bookmarklet fetches, and the page that installs it.
-    (DIST / "glowfic.js").write_text(source)
+    (DIST / "transcript.js").write_text(source)
     (DIST / "index.html").write_text(install_page(bookmarklet, version))
     extension = build_extension(source)
 

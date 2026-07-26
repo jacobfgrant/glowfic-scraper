@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Glowfic Clean Transcript",
+  "name": "Glowfic Transcript",
   "version": "0.1.0",
-  "description": "Export a glowfic thread as a stripped-down markdown transcript you can paste into a chat window or attach as a file.",
+  "description": "Export a glowfic thread as clean markdown or HTML — for reading offline, keeping a copy, or pasting into a chat.",
   "permissions": ["activeTab", "scripting"],
   "background": {
     "service_worker": "background.js"

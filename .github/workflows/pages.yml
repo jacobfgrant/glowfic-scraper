@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 # Publishing is also the update mechanism: the loader bookmarklet fetches
-# glowfic.js from Pages, so whatever is deployed here is what people run.
+# transcript.js from Pages, so whatever is deployed here is what people run.
 permissions:
   contents: read
   pages: write

@@ -194,7 +194,7 @@ test('the panel refuses to run outside a thread page', async () => {
 
   assert.equal(openPanel(), undefined);
   assert.match(warned, /Open a glowfic thread first/);
-  assert.equal(document.getElementById('glowfic-clean-export'), null);
+  assert.equal(document.getElementById('glowfic-transcript'), null);
 });
 
 test('switching format changes the output, extension, and size without refetching', async () => {

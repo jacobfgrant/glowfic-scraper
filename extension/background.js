@@ -20,7 +20,7 @@ async function inject(tabId) {
     return 'MAIN';
   } catch (error) {
     // `world` is a newer option; fall back rather than fail outright.
-    console.warn('Glowfic Clean Transcript: main-world injection failed:', error);
+    console.warn('Glowfic Transcript: main-world injection failed:', error);
     await chrome.scripting.executeScript({ target, files: FILES });
     return 'ISOLATED';
   }
@@ -32,6 +32,6 @@ chrome.action.onClicked.addListener(async (tab) => {
     await inject(tab.id);
   } catch (error) {
     // Chrome and Safari both block injection into their own pages.
-    console.warn('Glowfic Clean Transcript could not run on this page:', error);
+    console.warn('Glowfic Transcript could not run on this page:', error);
   }
 });

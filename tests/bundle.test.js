@@ -2,12 +2,10 @@
 // catch modules colliding once their scopes are flattened together.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
 import { JSDOM } from 'jsdom';
+import { distFile } from './dist.js';
 
-const root = fileURLToPath(new URL('..', import.meta.url));
 const fixture = readFileSync(new URL('./fixtures/thread-page.html', import.meta.url), 'utf8');
 
 const POST = {
@@ -23,9 +21,7 @@ const POST = {
 };
 
 function build() {
-  const result = spawnSync('python3', ['build.py'], { cwd: root, encoding: 'utf8' });
-  assert.equal(result.status, 0, `build.py failed:\n${result.stderr}`);
-  return readFileSync(new URL('../dist/bookmarklet.js', import.meta.url), 'utf8');
+  return distFile('bookmarklet.js');
 }
 
 async function settle(check, attempts = 50) {
@@ -51,7 +47,7 @@ test('the built bundle runs in a page and opens the panel', async () => {
 
   dom.window.eval(source);
 
-  const host = dom.window.document.getElementById('glowfic-clean-export');
+  const host = dom.window.document.getElementById('glowfic-transcript');
   assert.ok(host, 'the bundle did not attach its panel');
 
   const $ = (selector) => host.shadowRoot.querySelector(selector);

@@ -17,7 +17,7 @@ import {
 } from './glowfic.js';
 import { FORMATS, buildDocument, splitDocument } from './formats.js';
 
-const HOST_ID = 'glowfic-clean-export';
+const HOST_ID = 'glowfic-transcript';
 
 const CSS = `
 :host { all: initial; }
@@ -93,7 +93,7 @@ export function openPanel() {
 function template() {
   return `
 <div class="panel">
-  <header><span>Glowfic → clean transcript</span><button class="close" title="Close">×</button></header>
+  <header><span>Glowfic Transcript</span><button class="close" title="Close">×</button></header>
   <div class="body">
     <div class="meta"><div class="title">Loading…</div><div class="sub"></div></div>
     <fieldset class="scope" disabled>

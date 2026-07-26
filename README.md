@@ -1,7 +1,11 @@
-# Glowfic → clean transcript
+# Glowfic Transcript
 
-Turns a [glowfic](https://glowfic.com) thread into a stripped-down markdown
-transcript, for pasting into a chat window or attaching as a file.
+Turns a [glowfic](https://glowfic.com) thread into a clean, portable transcript
+— for reading offline, keeping a copy, or pasting into a chat.
+
+It reads threads through the site's own API, on a click, using the login you
+already have, and it respects access controls exactly as the site does. It does
+not crawl, and it does not republish anything.
 
 The site's own HTML is far heavier than the story inside it: a 369-reply thread
 renders as 575 KB of markup, which mostly gets in the way when you want to
@@ -97,9 +101,13 @@ republish what you pull down.
 
 ```
 npm install     # jsdom, for tests only
-npm test        # node --test
+npm test        # builds first, then node --test
 python3 build.py
 ```
+
+`npm test` builds before running, because several tests read `dist/` and the
+build clears it — test files run in parallel, so they must not build
+themselves.
 
 `src/` holds ES modules so they can be tested under node and shared between both
 targets:
@@ -119,7 +127,7 @@ Tests cover both converters, document assembly and splitting, and the panel
 wiring under jsdom, using a fixture cut from a real thread page. `bundle.test.js`
 builds the real bundle and runs it in a page, which is what catches scope
 collisions; a syntax check alone does not. None of it substitutes for clicking
-the real thing in Chrome.
+the real thing in a real browser.
 
 ## Publishing
 

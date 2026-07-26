@@ -2,7 +2,7 @@
 <html lang="en">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Glowfic → clean transcript</title>
+<title>Glowfic Transcript</title>
 <style>
   :root { color-scheme: light dark; }
   body { max-width: 40rem; margin: 0 auto; padding: 3rem 1.25rem 5rem;
@@ -59,9 +59,9 @@ bookmark below has nothing to load its code from. Use the
 <strong>self-contained version</strong> at the bottom instead, or serve this
 folder over HTTP.</p>
 
-<h1>Glowfic → clean transcript</h1>
-<p class="lede">Turns a glowfic thread into a stripped-down transcript you can paste
-into a chat window or attach as a file. One click, no account, nothing to install.</p>
+<h1>Glowfic Transcript</h1>
+<p class="lede">Turns a glowfic thread into a clean, portable transcript — for reading
+offline, keeping a copy, or pasting into a chat. One click, no account, nothing to install.</p>
 
 <pre class="sample"># mad investor chaos and the woman of asmodeus
 planecrash · Iarwain &amp; lintamande · 4482 replies
@@ -79,7 +79,7 @@ Keltham is having a *very* strange day, and it is not getting less strange.
       <li>Make sure your bookmarks bar is showing — <kbd>⌘⇧B</kbd>, or <kbd>Ctrl⇧B</kbd> on Windows.</li>
       <li>Drag this button onto it:</li>
     </ol>
-    <p><a class="drag" data-bookmarklet href="#">Glowfic → transcript</a></p>
+    <p><a class="drag" data-bookmarklet href="#">Glowfic Transcript</a></p>
     <p class="note">Then open any thread on glowfic.com and click the bookmark.</p>
   </div>
 </details>
@@ -91,7 +91,7 @@ Keltham is having a *very* strange day, and it is not getting less strange.
     so it takes a couple of extra steps. You only do this once.</p>
     <ol>
       <li><button class="copy" data-copy>Copy the bookmarklet</button></li>
-      <li>Press <kbd>⌘D</kbd> on any page. Name it <em>Glowfic → transcript</em>,
+      <li>Press <kbd>⌘D</kbd> on any page. Name it <em>Glowfic Transcript</em>,
         choose <strong>Favorites</strong>, and save.</li>
       <li>Open <strong>Bookmarks → Edit Bookmarks</strong>, right-click the one you just made,
         and choose <strong>Edit Address</strong>.</li>
@@ -99,7 +99,7 @@ Keltham is having a *very* strange day, and it is not getting less strange.
     </ol>
     <p class="note">Dragging the button below onto the Favorites bar sometimes works too,
     and is quicker when it does:</p>
-    <p><a class="drag" data-bookmarklet href="#">Glowfic → transcript</a></p>
+    <p><a class="drag" data-bookmarklet href="#">Glowfic Transcript</a></p>
   </div>
 </details>
 
@@ -132,7 +132,7 @@ Keltham is having a *very* strange day, and it is not getting less strange.
     <div class="inner">
       <p class="note">Same program, no dependency on this site. It's a very long bookmark;
       drag it rather than copying it if you can.</p>
-      <p><a class="drag" href="{{SELF_CONTAINED}}">Glowfic → transcript (offline)</a></p>
+      <p><a class="drag" href="{{SELF_CONTAINED}}">Glowfic Transcript (offline)</a></p>
       <p><button class="copy" data-copy-selfcontained>Copy to clipboard</button></p>
     </div>
   </details>
@@ -145,7 +145,7 @@ Keltham is having a *very* strange day, and it is not getting less strange.
   var version = '{{VERSION}}';
   var base = location.href.split('#')[0].split('?')[0].replace(/[^/]*$/, '');
   var loader = "javascript:(function(){var s=document.createElement('script');" +
-    "s.src='" + base + "glowfic.js?v=" + version + "';document.body.appendChild(s);})();";
+    "s.src='" + base + "transcript.js?v=" + version + "';document.body.appendChild(s);})();";
 
   var links = document.querySelectorAll('[data-bookmarklet]');
   for (var i = 0; i < links.length; i++) links[i].href = loader;
