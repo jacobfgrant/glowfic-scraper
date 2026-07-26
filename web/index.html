@@ -36,6 +36,9 @@
     padding: .6rem .75rem; margin: .6rem 0; font-size: .72rem; word-break: break-all;
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace; max-height: 7rem; overflow-y: auto; }
   .note { color: #6a6259; font-size: .88rem; }
+  .local { background: #fdf3e0; border: 1px solid #e8d5a8; border-radius: 6px;
+    padding: .8rem 1rem; margin: 0 0 1.5rem; font-size: .9rem; }
+  .local[hidden] { display: none; }
   .footer { margin-top: 3rem; padding-top: 1.25rem; border-top: 1px solid #e6e1d8;
     color: #6a6259; font-size: .85rem; }
   .footer h3 { font-size: .95rem; color: #24211d; margin: 1.5rem 0 .35rem; }
@@ -45,10 +48,16 @@
     pre.sample, code.snippet, kbd { background: #262320; border-color: #35312d; }
     details { background: #211f1c; border-color: #35312d; }
     .footer { border-color: #35312d; }
+    .local { background: #33291a; border-color: #5c4a28; }
     .footer h3 { color: #ddd8d0; }
     .yours { color: #c0a3d0; }
   }
 </style>
+
+<p id="local" class="local" hidden>You've opened this page as a local file, so the
+bookmark below has nothing to load its code from. Use the
+<strong>self-contained version</strong> at the bottom instead, or serve this
+folder over HTTP.</p>
 
 <h1>Glowfic → clean transcript</h1>
 <p class="lede">Turns a glowfic thread into a stripped-down transcript you can paste
@@ -181,6 +190,9 @@ Keltham is having a *very* strange day, and it is not getting less strange.
   wire('[data-copy-selfcontained]', function () {
     return document.querySelector('.footer a.drag').href;
   });
+
+  // Served from disk there is no origin to fetch the code from.
+  if (location.protocol === 'file:') document.getElementById('local').hidden = false;
 
   // Open the section that matches this browser, and say so.
   var agent = navigator.userAgent;

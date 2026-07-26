@@ -155,3 +155,13 @@ test('the browser sniff actually reads the user agent', () => {
   assert.equal(detected(CHROME_UA.replace('Chrome/140.0', 'Edg/140.0')), false);
   assert.equal(detected('Mozilla/5.0 (X11; Linux) Gecko/20100101 Firefox/130.0'), false);
 });
+
+test('opening the page from disk warns that the loader has nothing to fetch', () => {
+  const { page } = build();
+  const served = open(page, { userAgent: CHROME_UA });
+  assert.equal(served.getElementById('local').hidden, true);
+
+  const local = open(page, { url: 'file:///Users/someone/dist/index.html', userAgent: CHROME_UA });
+  assert.equal(local.getElementById('local').hidden, false);
+  assert.match(local.getElementById('local').textContent, /self-contained/i);
+});
