@@ -8,6 +8,18 @@ renders as 575 KB of markup, which mostly gets in the way when you want to
 discuss the writing. The same thread comes out of this as 92 KB — about 23k
 tokens — with nothing lost but styling.
 
+It writes either markdown or clean HTML:
+
+| | 369-reply thread | tokens |
+| --- | --- | --- |
+| glowfic.com | 575 KB | — |
+| markdown | 92 KB | ~23k |
+| HTML | 124 KB | ~31k |
+
+Markdown is the cheaper of the two and the default. The HTML is a standalone
+file — inline stylesheet, no assets, light and dark — so it opens straight in a
+browser if you want to read or skim the export before handing it over.
+
 ```
 # New neighbors. Just as frustrating.
 Sandboxes · lintamande & Rockeye · 369 replies
@@ -48,13 +60,15 @@ Clicking opens a panel that asks what to export before it fetches anything:
   respects your posts-per-page setting and costs no extra requests.
 - **A page range** — numbered the way the site numbers pages for you.
 
-Then either **Copy** it or **Download** it. Long threads are split into numbered
-files, each repeating the header so it stands on its own; the split size is
-adjustable and defaults to 300k characters, roughly 75k tokens. Above 250k
-characters the panel steers you toward downloading, since pasting stops being
-practical. Chrome asks once per site before saving multiple files.
+Then pick a format and either **Copy** it or **Download** it. Long threads are
+split into numbered files, each one complete on its own — headers repeated, and
+in HTML a full document with its own stylesheet. The split size is adjustable
+and defaults to 300k characters, roughly 75k tokens. Above 250k characters the
+panel steers you toward downloading, since pasting stops being practical. Chrome
+asks once per site before saving multiple files.
 
-Icon keywords and links can each be switched off if you want the text barer.
+Changing the format, the split size, or the icon and link switches re-renders
+what was already fetched instead of hitting the site again.
 
 ## Access and etiquette
 
@@ -79,13 +93,24 @@ python3 build.py
 ```
 
 `src/` holds ES modules so they can be tested under node and shared between both
-targets; `build.py` inlines them into a `javascript:` URL, since a bookmarklet
-cannot resolve imports, and assembles `dist/extension`. Icons are drawn by
+targets:
+
+- `glowfic.js` — URL parsing, the API client, normalizing entries
+- `markdown.js`, `cleanhtml.js` — the two converters, each a DOM walk
+- `formats.js` — assembling entries into a finished document, and splitting it
+- `panel.js` — the in-page UI
+
+`build.py` gives each module its own scope and wires the exports together, since
+several of them declare a `HEADINGS` or a `renderNode` of their own and plain
+concatenation would collide. The result becomes a `javascript:` URL — a
+bookmarklet cannot resolve imports — and `dist/extension`. Icons are drawn by
 `icons.py` rather than committed as binaries.
 
-Tests cover the HTML→markdown conversion, transcript formatting and splitting,
-and the panel wiring under jsdom, using a fixture cut from a real thread page.
-The panel tests are not a substitute for clicking the real thing in Chrome.
+Tests cover both converters, document assembly and splitting, and the panel
+wiring under jsdom, using a fixture cut from a real thread page. `bundle.test.js`
+builds the real bundle and runs it in a page, which is what catches scope
+collisions; a syntax check alone does not. None of it substitutes for clicking
+the real thing in Chrome.
 
 ## Publishing the extension
 

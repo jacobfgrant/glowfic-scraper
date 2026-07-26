@@ -2,7 +2,6 @@
 // and this one cannot interfere with each other.
 
 import {
-  buildHeader,
   entriesFromDocument,
   entryFromPost,
   entryFromReply,
@@ -10,14 +9,13 @@ import {
   fetchPost,
   fetchReplies,
   fileStem,
-  formatEntry,
   openingAuthor,
   pageCount,
   parseThreadUrl,
   perPageFromDocument,
   replyRangeForPages,
-  splitTranscript,
 } from './glowfic.js';
+import { FORMATS, buildDocument, splitDocument } from './formats.js';
 
 const HOST_ID = 'glowfic-clean-export';
 
@@ -101,6 +99,12 @@ function template() {
       </label>
     </fieldset>
     <div class="options">
+      <label class="inline">Format
+        <select class="format">
+          <option value="markdown">Markdown (.md)</option>
+          <option value="html">HTML (.html)</option>
+        </select>
+      </label>
       <label><input type="checkbox" class="icons" checked> Include icon keywords</label>
       <label><input type="checkbox" class="links" checked> Keep links</label>
     </div>
@@ -137,6 +141,10 @@ class Panel {
     });
     this.$('.copy').addEventListener('click', () => this.copy());
     this.$('.download').addEventListener('click', () => this.download());
+    // Format and option changes only re-render what was already fetched.
+    for (const selector of ['.format', '.icons', '.links', '.chunk']) {
+      this.$(selector).addEventListener('input', () => this.refresh());
+    }
     this.onKeydown = (event) => event.key === 'Escape' && this.close();
     document.addEventListener('keydown', this.onKeydown);
   }
@@ -177,6 +185,10 @@ class Panel {
       icons: this.$('.icons').checked,
       links: this.$('.links').checked,
     };
+  }
+
+  get format() {
+    return FORMATS[this.$('.format').value] ?? FORMATS.markdown;
   }
 
   async run() {
@@ -233,16 +245,16 @@ class Panel {
     return `Pages ${from}–${to} of ${this.pages}`;
   }
 
-  transcript() {
-    const options = { ...this.options, scope: this.scopeNote };
-    const header = buildHeader(this.post, options);
-    const body = this.entries.map((entry) => formatEntry(entry, options)).join('\n\n');
-    return `${header}\n\n${body}\n`;
+  output() {
+    return buildDocument(this.format, this.post, this.entries, {
+      ...this.options,
+      scope: this.scopeNote,
+    });
   }
 
   parts() {
     const maxChars = (Number(this.$('.chunk').value) || 300) * 1000;
-    return splitTranscript(this.post, this.entries, {
+    return splitDocument(this.format, this.post, this.entries, {
       ...this.options,
       scope: this.scopeNote,
       maxChars,
@@ -250,7 +262,7 @@ class Panel {
   }
 
   report() {
-    const text = this.transcript();
+    const text = this.output();
     const tokens = estimateTokens(text);
     this.status('');
     this.$('.result').hidden = false;
@@ -263,16 +275,20 @@ class Panel {
       ? ''
       : 'Too big to paste comfortably — download and attach the files instead.';
     this.updateDownloadLabel();
-    this.$('.chunk').oninput = () => this.updateDownloadLabel();
+  }
+
+  refresh() {
+    if (!this.$('.result').hidden) this.report();
   }
 
   updateDownloadLabel() {
     const count = this.parts().length;
-    this.$('.download').textContent = count > 1 ? `Download ${count} files` : 'Download .md';
+    this.$('.download').textContent =
+      count > 1 ? `Download ${count} files` : `Download .${this.format.extension}`;
   }
 
   async copy() {
-    const text = this.transcript();
+    const text = this.output();
     try {
       await navigator.clipboard.writeText(text);
       this.status(`Copied ${text.length.toLocaleString()} characters.`);
@@ -284,9 +300,10 @@ class Panel {
   async download() {
     const parts = this.parts();
     const stem = fileStem(this.post);
+    const { extension, mime } = this.format;
     parts.forEach((text, index) => {
       const suffix = parts.length > 1 ? `-part${index + 1}` : '';
-      save(text, `${stem}${suffix}.md`);
+      save(text, `${stem}${suffix}.${extension}`, mime);
     });
     this.status(`Saved ${parts.length} file${parts.length > 1 ? 's' : ''}.`);
   }
@@ -302,8 +319,8 @@ class Panel {
   }
 }
 
-function save(text, filename) {
-  const url = URL.createObjectURL(new Blob([text], { type: 'text/markdown' }));
+function save(text, filename, mime) {
+  const url = URL.createObjectURL(new Blob([text], { type: mime }));
   const link = document.createElement('a');
   link.href = url;
   link.download = filename;

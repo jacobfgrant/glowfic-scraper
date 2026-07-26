@@ -21,8 +21,16 @@ DIST = ROOT / "dist"
 EXTENSION = ROOT / "extension"
 ENTRY = "main.js"
 
-IMPORT_RE = re.compile(r"^import\s.*?from\s+'(?P<path>[^']+)';\s*$", re.MULTILINE | re.DOTALL)
-EXPORT_RE = re.compile(r"^export\s+(?=(?:default\s+)?(?:function|const|let|class|async))", re.MULTILINE)
+IMPORT_RE = re.compile(
+    r"^import\s+\{(?P<bindings>[^}]*)\}\s+from\s+'(?P<path>[^']+)';\s*$",
+    re.MULTILINE,
+)
+ANY_IMPORT_RE = re.compile(r"^import\s.*$", re.MULTILINE)
+EXPORT_RE = re.compile(r"^export\s+(?=(?:function|const|let|class|async))", re.MULTILINE)
+EXPORTED_NAME_RE = re.compile(
+    r"^export\s+(?:async\s+)?(?:function|const|let|class)\s+(?P<name>[A-Za-z_$][\w$]*)",
+    re.MULTILINE,
+)
 
 
 def resolve(entry: str, seen: set[str] | None = None) -> list[str]:
@@ -41,9 +49,36 @@ def resolve(entry: str, seen: set[str] | None = None) -> list[str]:
     return order
 
 
-def strip_module_syntax(source: str) -> str:
-    source = IMPORT_RE.sub("", source)
-    return EXPORT_RE.sub("", source)
+def module_id(name: str) -> str:
+    return "__" + re.sub(r"\W", "_", name)
+
+
+def wrap_module(name: str, source: str) -> str:
+    """Closes a module over its own scope and hands its exports to the next one.
+
+    Concatenating the modules instead would collide: several of them declare a
+    HEADINGS or a renderNode of their own, which is only safe because module
+    scope keeps them apart.
+    """
+    unsupported = ANY_IMPORT_RE.findall(IMPORT_RE.sub("", source))
+    if unsupported:
+        raise SystemExit(
+            "only `import { a, b } from './x.js';` is supported by this bundler:\n  "
+            + "\n  ".join(unsupported)
+        )
+
+    wiring = [
+        f"const {{{' '.join(match.group('bindings').split())}}} = {module_id(Path(match.group('path')).name)};"
+        for match in IMPORT_RE.finditer(source)
+    ]
+    exported = [match.group("name") for match in EXPORTED_NAME_RE.finditer(source)]
+    body = EXPORT_RE.sub("", IMPORT_RE.sub("", source))
+    inner = "\n".join([*wiring, body])
+
+    if name == ENTRY:
+        return f"(function () {{\n{inner}\n}})();"
+    returns = "return { " + ", ".join(exported) + " };"
+    return f"const {module_id(name)} = (function () {{\n{inner}\n{returns}\n}})();"
 
 
 def compact(source: str) -> str:
@@ -72,8 +107,7 @@ def compact(source: str) -> str:
 
 def bundle() -> str:
     modules = resolve(ENTRY)
-    parts = [strip_module_syntax((SRC / name).read_text()) for name in modules]
-    body = "\n".join(parts)
+    body = "\n".join(wrap_module(name, (SRC / name).read_text()) for name in modules)
     leftovers = re.findall(r"^\s*(?:import|export)\s.*$", body, re.MULTILINE)
     if leftovers:
         raise SystemExit(

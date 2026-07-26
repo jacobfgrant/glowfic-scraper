@@ -77,8 +77,8 @@ test('"this page" reads the rendered page and makes no API calls for replies', a
 
   assert.equal(calls.filter((url) => url.includes('/replies')).length, 0);
   assert.equal(panel.entries.length, 3);
-  assert.ok(panel.transcript().includes('## Mountain (Rockeye) [confusion]'));
-  assert.ok(panel.transcript().includes('Page 1 of 15'));
+  assert.ok(panel.output().includes('## Mountain (Rockeye) [confusion]'));
+  assert.ok(panel.output().includes('Page 1 of 15'));
   assert.equal($('.result').hidden, false);
   panel.close();
 });
@@ -93,7 +93,7 @@ test('"whole thread" pulls replies from the API and prepends the opening post', 
 
   assert.ok(calls.some((url) => url.includes('/posts/100/replies?page=1&per_page=100')));
   assert.equal(panel.entries.length, 2);
-  const transcript = panel.transcript();
+  const transcript = panel.output();
   assert.ok(transcript.startsWith('# New neighbors. Just as frustrating.'));
   assert.ok(transcript.includes('## Mountain (Rockeye) [confusion]'));
   assert.ok(transcript.includes('## lintamande [Celegorm]'));
@@ -113,8 +113,8 @@ test('a page range requests only the pages it needs and omits the opening post',
   // Site pages 6-8 at 25 per page are replies 125-199, which live on API page 2.
   assert.ok(calls.some((url) => url.includes('replies?page=2&per_page=100')));
   assert.ok(!calls.some((url) => url.includes('replies?page=1&per_page=100')));
-  assert.ok(!panel.transcript().includes('does not feel any tiles'));
-  assert.ok(panel.transcript().includes('Pages 6–8 of 15'));
+  assert.ok(!panel.output().includes('does not feel any tiles'));
+  assert.ok(panel.output().includes('Pages 6–8 of 15'));
   panel.close();
 });
 
@@ -127,8 +127,8 @@ test('icon keywords and links can be switched off before exporting', async () =>
   $('.fetch').click();
   await panel.busy;
 
-  assert.ok(panel.transcript().includes('## Mountain (Rockeye)\n'));
-  assert.ok(!panel.transcript().includes('[confusion]'));
+  assert.ok(panel.output().includes('## Mountain (Rockeye)\n'));
+  assert.ok(!panel.output().includes('[confusion]'));
   panel.close();
 });
 
@@ -159,7 +159,7 @@ test('a thread too large to paste warns and offers split downloads', async () =>
   $('.fetch').click();
   await panel.busy;
 
-  assert.ok(panel.transcript().length > 250_000);
+  assert.ok(panel.output().length > 250_000);
   assert.equal($('.warn').hidden, false);
   assert.match($('.warn').textContent, /download and attach/i);
   assert.match($('.download').textContent, /Download \d+ files/);
@@ -195,4 +195,27 @@ test('the panel refuses to run outside a thread page', async () => {
   assert.equal(openPanel(), undefined);
   assert.match(warned, /Open a glowfic thread first/);
   assert.equal(document.getElementById('glowfic-clean-export'), null);
+});
+
+test('switching format changes the output, extension, and size without refetching', async () => {
+  const { panel, dom, calls } = await openReadyPanel();
+  const $ = (selector) => panel.root.querySelector(selector);
+
+  $('input[name=scope][value=page]').checked = true;
+  $('.fetch').click();
+  await panel.busy;
+
+  const requests = calls.length;
+  const markdownSize = $('.size').textContent;
+  assert.equal($('.download').textContent, 'Download .md');
+
+  $('.format').value = 'html';
+  $('.format').dispatchEvent(new dom.window.Event('input'));
+
+  assert.equal(calls.length, requests, 'switching format refetched');
+  assert.equal($('.download').textContent, 'Download .html');
+  assert.notEqual($('.size').textContent, markdownSize);
+  assert.ok(panel.output().startsWith('<!doctype html>'));
+  assert.ok(panel.output().includes('<h2>Mountain (Rockeye) <span class="icon">confusion</span></h2>'));
+  panel.close();
 });

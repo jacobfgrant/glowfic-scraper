@@ -1,9 +1,7 @@
-// Reads a glowfic thread and renders it as a plain markdown transcript.
+// Reads a glowfic thread: URL parsing, the API client, and normalizing entries.
 //
 // Entries from the JSON API and entries scraped from the rendered page are
-// normalized to the same shape so everything downstream is shared.
-
-import { htmlToMarkdown } from './markdown.js';
+// normalized to the same shape so both feed the same renderers in formats.js.
 
 const API_PER_PAGE = 100;
 const REQUEST_GAP_MS = 120;
@@ -143,68 +141,6 @@ export function perPageFromDocument(doc, href) {
   const live = Number(select?.value);
   if (live) return live;
   return Number(select?.querySelector('option[selected]')?.value) || 25;
-}
-
-export function formatEntry(entry, options = {}) {
-  const opts = { icons: true, ...options };
-  const icon = opts.icons && entry.icon ? ` [${entry.icon}]` : '';
-  const body = htmlToMarkdown(entry.html, opts);
-  return `## ${speakerLabel(entry)}${icon}\n${body}`;
-}
-
-function speakerLabel({ name, username }) {
-  if (name && username && name !== username) return `${name} (${username})`;
-  return name || username || 'unknown';
-}
-
-export function buildHeader(post, { scope, part } = {}) {
-  const authors = (post.authors ?? []).map((author) => author.username).join(' & ');
-  const board = [...new Set([post.board?.name, post.section?.name].filter(Boolean))].join(' / ');
-  const facts = [board, authors, `${post.num_replies} replies`].filter(Boolean);
-
-  const lines = [`# ${post.subject}`, facts.join(' · '), `https://glowfic.com/posts/${post.id}`];
-  if (post.description) lines.push(`_${post.description}_`);
-  if (scope) lines.push(scope);
-  if (part) lines.push(part);
-  return lines.join('\n');
-}
-
-export function buildTranscript(post, entries, options = {}) {
-  const body = entries.map((entry) => formatEntry(entry, options)).join('\n\n');
-  return `${buildHeader(post, options)}\n\n${body}\n`;
-}
-
-/**
- * Splits a transcript into parts small enough for one conversation, breaking
- * only between entries and repeating the header so each part stands alone.
- */
-export function splitTranscript(post, entries, options = {}) {
-  const { maxChars = 300_000 } = options;
-  const blocks = entries.map((entry) => formatEntry(entry, options));
-  const groups = [[]];
-  let size = 0;
-
-  for (const block of blocks) {
-    const current = groups[groups.length - 1];
-    if (current.length && size + block.length > maxChars) {
-      groups.push([block]);
-      size = block.length;
-    } else {
-      current.push(block);
-      size += block.length + 2;
-    }
-  }
-
-  let entryIndex = 0;
-  return groups.map((group, index) => {
-    const first = entryIndex + 1;
-    entryIndex += group.length;
-    const part = groups.length > 1
-      ? `Part ${index + 1} of ${groups.length} · entries ${first}–${entryIndex}`
-      : null;
-    const header = buildHeader(post, { ...options, part });
-    return `${header}\n\n${group.join('\n\n')}\n`;
-  });
 }
 
 export function estimateTokens(text) {
