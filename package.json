@@ -1,0 +1,14 @@
+{
+  "name": "glowfic-clean-export",
+  "version": "0.1.0",
+  "description": "Export a glowfic thread as a stripped-down markdown transcript",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "test": "node --test \"tests/**/*.test.js\"",
+    "build": "python3 build.py"
+  },
+  "devDependencies": {
+    "jsdom": "^26.0.0"
+  }
+}
