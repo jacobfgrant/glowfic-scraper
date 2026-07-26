@@ -4,6 +4,7 @@
   "version": "0.1.0",
   "description": "Export a glowfic thread as a stripped-down markdown transcript you can paste into a chat window or attach as a file.",
   "permissions": ["activeTab", "scripting"],
+  "host_permissions": ["https://glowfic.com/*"],
   "background": {
     "service_worker": "background.js"
   },

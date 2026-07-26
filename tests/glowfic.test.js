@@ -92,3 +92,36 @@ test('an open-ended fetch reports progress without a bogus page total', async ()
   await fetchReplies(100, { onProgress: (progress) => seen.push(progress) });
   assert.deepEqual(seen, [{ page: 1, pages: null }]);
 });
+
+test('requests carry credentials so locked threads are readable from either context', async () => {
+  const seen = [];
+  globalThis.fetch = async (url, init) => {
+    seen.push({ url, init });
+    return { ok: true, status: 200, json: async () => ({}) };
+  };
+  const { fetchPost } = await import('../src/glowfic.js');
+  await fetchPost(100);
+
+  assert.equal(seen.length, 1);
+  // `same-origin` drops the session cookie when this runs in an isolated world.
+  assert.equal(seen[0].init.credentials, 'include');
+  assert.equal(seen[0].init.headers.Accept, 'application/json');
+});
+
+test('a blocked request explains itself instead of just saying "Load failed"', async () => {
+  globalThis.fetch = async () => {
+    throw new TypeError('Load failed');
+  };
+  const { fetchPost } = await import('../src/glowfic.js');
+  await assert.rejects(fetchPost(100), (error) => {
+    assert.match(error.message, /Could not reach glowfic\.com/);
+    assert.match(error.message, /Load failed/);
+    return true;
+  });
+});
+
+test('an HTTP error still reports its status', async () => {
+  globalThis.fetch = async () => ({ ok: false, status: 500, json: async () => ({}) });
+  const { fetchPost } = await import('../src/glowfic.js');
+  await assert.rejects(fetchPost(100), /returned 500/);
+});

@@ -29,11 +29,24 @@ export function pageCount(replyCount, perPage) {
 }
 
 async function fetchJson(path, signal) {
-  const response = await fetch(`https://glowfic.com/api/v1${path}`, {
-    credentials: 'same-origin',
-    headers: { Accept: 'application/json' },
-    signal,
-  });
+  // `include` rather than `same-origin`: as a bookmarklet this code is the page
+  // and either would do, but an extension content script runs in an isolated
+  // world where the request may not count as same-origin, and then the reader's
+  // session cookie is left behind.
+  let response;
+  try {
+    response = await fetch(`https://glowfic.com/api/v1${path}`, {
+      credentials: 'include',
+      headers: { Accept: 'application/json' },
+      signal,
+    });
+  } catch (error) {
+    // Browsers report a blocked request as a bare "Load failed" or "Failed to
+    // fetch", which says nothing about why.
+    throw new Error(
+      `Could not reach glowfic.com — the request was blocked or the network failed (${error.message}).`
+    );
+  }
   if (response.status === 403) {
     throw new Error('Glowfic says this thread is not readable by the current login.');
   }
