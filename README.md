@@ -136,10 +136,21 @@ the default branch, via `.github/workflows/pages.yml`, which runs the tests
 first. Nothing generated is committed — the workflow builds `dist/` and uploads
 it, so the deployed page is always the current source.
 
-**Chrome Web Store** is a $5 one-time registration plus a listing: screenshots,
-a description, and a privacy disclosure, which is short since the extension
-collects nothing. The permission profile is deliberately minimal to keep review
-quick.
+**Chrome Web Store** is a $5 one-time registration plus a listing. The
+permission profile is deliberately minimal — `activeTab` and `scripting`, no
+host permissions — which should keep review quick.
+
+Note that "collects nothing" is not the right answer on the privacy form.
+Chrome counts *"clipping or scraping content from a website that the user
+visits"* as handling user data **even when it never leaves the device**, so
+**Website content** has to be declared, and declaring anything makes a privacy
+policy URL mandatory. That policy is `web/privacy.html`, published alongside the
+install page. Answer "no" to remotely hosted code: the extension bundles
+everything, and only the bookmarklet loads remotely.
+
+The listing should say plainly that this is unofficial and not affiliated with
+glowfic.com, and that it exports threads the reader is already permitted to
+read, for personal use, without republishing.
 
 **Firefox** is free to publish on AMO, but not quite a drop-in port: Firefox
 implements MV3 background scripts as non-persistent event pages, so the manifest

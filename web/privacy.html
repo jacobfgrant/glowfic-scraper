@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy — Glowfic Transcript</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { max-width: 38rem; margin: 0 auto; padding: 3rem 1.25rem 5rem;
+    font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, sans-serif;
+    color: #24211d; background: #fdfcfa; }
+  h1 { font-size: 1.5rem; margin: 0 0 .3rem; }
+  h2 { font-size: 1.05rem; margin: 2rem 0 .4rem; }
+  .updated { color: #6a6259; font-size: .85rem; margin: 0 0 2rem; }
+  ul { padding-left: 1.2rem; }
+  li { margin: .35rem 0; }
+  a { color: #6d4c7d; }
+  @media (prefers-color-scheme: dark) {
+    body { background: #1c1a18; color: #ddd8d0; }
+    .updated { color: #9b948a; }
+    a { color: #c0a3d0; }
+  }
+</style>
+
+<h1>Privacy</h1>
+<p class="updated">Glowfic Transcript — browser extension and bookmarklet.</p>
+
+<p>Glowfic Transcript reads a thread you are looking at on glowfic.com and turns
+it into a markdown or HTML file. Everything it does happens in your browser.</p>
+
+<h2>What it reads</h2>
+<p>When you click the button on a thread, it requests that thread's text from
+glowfic.com's own API, using the login you already have in that browser. It
+reads only the thread you asked for, and only when you ask. It has no access to
+any other site.</p>
+
+<h2>Where that goes</h2>
+<p>Nowhere. The text is turned into a transcript and handed straight back to you
+to copy or save. In particular:</p>
+<ul>
+  <li>Nothing is sent to the developer, or to any third party.</li>
+  <li>There is no server. There is no account. There is nothing to log in to.</li>
+  <li>There is no analytics, telemetry, or crash reporting of any kind.</li>
+  <li>Nothing is stored beyond the browser tab — closing it discards everything.</li>
+  <li>Your glowfic password is never asked for and never seen.</li>
+</ul>
+
+<h2>What you do with the file</h2>
+<p>Once you copy or download a transcript, what happens to it is up to you. If
+you paste it into another application — a chat assistant, a notes app, an
+e-reader — that application's own terms and privacy policy apply to it. This
+tool has no involvement in that step and no way to know about it.</p>
+
+<h2>Permissions</h2>
+<p>The extension requests two permissions and no standing access to any website:
+<code>activeTab</code>, which grants access to a single tab at the moment you
+click the toolbar button, and <code>scripting</code>, which is what lets it put
+the export panel into that tab. It holds no permission when you are not using
+it.</p>
+
+<h2>Other people's writing</h2>
+<p>A glowfic thread is written by its authors. This tool exports what you are
+already logged in and permitted to read, for your own use. It does not bypass
+any access restriction, and locked threads you cannot read stay unreadable.
+Please don't republish or redistribute other people's work with it.</p>
+
+<h2>Contact</h2>
+<p>The source is public at
+<a href="https://github.com/jacobfgrant/glowfic-transcript">github.com/jacobfgrant/glowfic-transcript</a>;
+questions and problems are best raised there as an issue.</p>
+
+<p class="updated" style="margin-top:3rem">Glowfic Transcript is an unofficial,
+fan-made tool. It is not affiliated with, endorsed by, or produced by the
+Glowfic Constellation or glowfic.com.</p>
+</html>
