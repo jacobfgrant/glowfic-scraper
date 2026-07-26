@@ -125,3 +125,33 @@ test('an HTTP error still reports its status', async () => {
   const { fetchPost } = await import('../src/glowfic.js');
   await assert.rejects(fetchPost(100), /returned 500/);
 });
+
+test('the API is called on whichever glowfic host the reader is on', async () => {
+  const { apiOrigin } = await import('../src/glowfic.js');
+
+  // These are different origins and the site redirects between neither, so a
+  // request to the wrong one is cross-origin and gets refused.
+  assert.equal(apiOrigin({ hostname: 'www.glowfic.com', origin: 'https://www.glowfic.com' }),
+    'https://www.glowfic.com');
+  assert.equal(apiOrigin({ hostname: 'glowfic.com', origin: 'https://glowfic.com' }),
+    'https://glowfic.com');
+});
+
+test('a non-glowfic page falls back rather than calling some other site', async () => {
+  const { apiOrigin } = await import('../src/glowfic.js');
+
+  assert.equal(apiOrigin({ hostname: 'evil.example', origin: 'https://evil.example' }),
+    'https://glowfic.com');
+  assert.equal(apiOrigin({ hostname: 'glowfic.com.evil.example', origin: 'https://glowfic.com.evil.example' }),
+    'https://glowfic.com');
+  assert.equal(apiOrigin(undefined), 'https://glowfic.com');
+});
+
+test('thread URLs are recognized on both hosts and rejected elsewhere', async () => {
+  const { parseThreadUrl } = await import('../src/glowfic.js');
+
+  assert.equal(parseThreadUrl('https://www.glowfic.com/posts/2652').postId, 2652);
+  assert.equal(parseThreadUrl('https://glowfic.com/posts/2652').postId, 2652);
+  assert.equal(parseThreadUrl('https://example.com/posts/2652'), null);
+  assert.equal(parseThreadUrl('https://glowfic.com.evil.example/posts/2652'), null);
+});

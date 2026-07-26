@@ -6,10 +6,26 @@
 const API_PER_PAGE = 100;
 const REQUEST_GAP_MS = 120;
 const CHARS_PER_TOKEN = 4;
+const GLOWFIC_HOST = /(^|\.)glowfic\.com$/;
+const FALLBACK_ORIGIN = 'https://glowfic.com';
+
+/**
+ * The origin to call the API on.
+ *
+ * glowfic serves the site on both glowfic.com and www.glowfic.com, without
+ * redirecting between them, and those are different origins. Hardcoding either
+ * makes every request cross-origin for half the readers, which the browser
+ * refuses outright because the site sends no CORS headers. So follow whichever
+ * one the reader is actually on.
+ */
+export function apiOrigin(loc = globalThis.location) {
+  return loc && GLOWFIC_HOST.test(loc.hostname) ? loc.origin : FALLBACK_ORIGIN;
+}
 
 /** Pulls the post id and current page out of a glowfic thread URL. */
 export function parseThreadUrl(href) {
-  const url = new URL(href, 'https://glowfic.com');
+  const url = new URL(href, FALLBACK_ORIGIN);
+  if (!GLOWFIC_HOST.test(url.hostname)) return null;
   const match = url.pathname.match(/^\/posts\/(\d+)/);
   if (!match) return null;
   return {
@@ -35,7 +51,7 @@ async function fetchJson(path, signal) {
   // session cookie is left behind.
   let response;
   try {
-    response = await fetch(`https://glowfic.com/api/v1${path}`, {
+    response = await fetch(`${apiOrigin()}/api/v1${path}`, {
       credentials: 'include',
       headers: { Accept: 'application/json' },
       signal,

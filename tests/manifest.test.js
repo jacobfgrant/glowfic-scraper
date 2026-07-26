@@ -8,15 +8,16 @@ const manifest = JSON.parse(
   readFileSync(new URL('../extension/manifest.json', import.meta.url), 'utf8')
 );
 
-test('the extension can read glowfic.com from an isolated content script', () => {
-  assert.deepEqual(manifest.host_permissions, ['https://glowfic.com/*']);
+test('no host permissions are needed, because requests are same-origin', () => {
+  // The panel calls the API on whichever origin the reader is already on, so
+  // the extension never makes a cross-origin request and Chrome shows no
+  // "read your data on..." warning.
+  assert.equal(manifest.host_permissions, undefined);
 });
 
 test('permissions stay narrow', () => {
   assert.deepEqual(manifest.permissions, ['activeTab', 'scripting']);
-  // No standing access to anything but glowfic, and nothing that reads history,
-  // cookies, or every site.
-  for (const granted of [...manifest.permissions, ...manifest.host_permissions]) {
+  for (const granted of manifest.permissions) {
     assert.ok(
       !/^(<all_urls>|\*:\/\/\*\/\*|tabs|cookies|history|webRequest)$/.test(granted),
       `unexpectedly broad permission: ${granted}`

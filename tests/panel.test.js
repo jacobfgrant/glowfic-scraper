@@ -290,3 +290,37 @@ test('a whole-thread download saves every part, spaced out', async () => {
   assert.match($('.status').textContent, /Saved \d+ files/);
   panel.close();
 });
+
+test('on www.glowfic.com every request stays on www', async () => {
+  // Requesting the apex from a www page is cross-origin, and glowfic sends no
+  // CORS headers, so the browser refuses it before it ever returns.
+  const { panel, calls } = await openReadyPanel({ url: 'https://www.glowfic.com/posts/100' });
+  const $ = (selector) => panel.root.querySelector(selector);
+
+  $('input[name=scope][value=all]').checked = true;
+  $('.fetch').click();
+  await panel.busy;
+
+  assert.ok(calls.length >= 2, 'expected a post fetch and a replies fetch');
+  for (const url of calls) {
+    assert.ok(
+      String(url).startsWith('https://www.glowfic.com/'),
+      `went cross-origin: ${url}`
+    );
+  }
+  panel.close();
+});
+
+test('on the apex host every request stays on the apex', async () => {
+  const { panel, calls } = await openReadyPanel({ url: 'https://glowfic.com/posts/100' });
+  const $ = (selector) => panel.root.querySelector(selector);
+
+  $('input[name=scope][value=all]').checked = true;
+  $('.fetch').click();
+  await panel.busy;
+
+  for (const url of calls) {
+    assert.ok(String(url).startsWith('https://glowfic.com/'), `went cross-origin: ${url}`);
+  }
+  panel.close();
+});
