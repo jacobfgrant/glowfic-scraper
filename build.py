@@ -166,8 +166,10 @@ def main() -> None:
     # The name the loader bookmarklet fetches, and the page that installs it.
     (DIST / "transcript.js").write_text(source)
     (DIST / "index.html").write_text(install_page(bookmarklet, version))
-    # Static pages need no templating; the store listing links to the policy.
-    (DIST / "privacy.html").write_text((WEB / "privacy.html").read_text())
+    # Served as a directory so the published URL has no file extension: it goes
+    # in a store listing and should outlive however this is built.
+    (DIST / "privacy").mkdir()
+    (DIST / "privacy" / "index.html").write_text((WEB / "privacy.html").read_text())
     extension = build_extension(source)
 
     used = len(bookmarklet) / SAFARI_URL_LIMIT

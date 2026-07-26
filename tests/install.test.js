@@ -175,12 +175,12 @@ test('a hostile page path cannot inject code into the bookmarklet', () => {
 
 test('the privacy policy ships alongside the install page and is linked from it', () => {
   build();
-  const policy = distFile('privacy.html');
+  const policy = distFile('privacy/index.html');
 
   assert.match(policy, /<title>Privacy/);
   assert.match(policy, /not affiliated with, endorsed by, or produced by/i);
   // The Chrome listing requires a reachable policy once any data type is
   // declared, and "website content" is declared.
   assert.match(policy, /Nothing is sent to the developer/i);
-  assert.ok(distFile('index.html').includes('href="privacy.html"'));
+  assert.ok(distFile('index.html').includes('href="privacy/"'));
 });
