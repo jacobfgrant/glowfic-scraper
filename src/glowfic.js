@@ -56,6 +56,9 @@ export function fetchPost(postId, signal) {
 export async function fetchReplies(postId, { start, end, onProgress, signal } = {}) {
   const firstPage = Math.floor((start ?? 0) / API_PER_PAGE) + 1;
   const lastPage = Math.floor(Math.max(0, (end ?? Infinity) - 1) / API_PER_PAGE) + 1;
+  // An open-ended read stops when a short batch comes back, so there is no
+  // page total to report until then.
+  const total = Number.isFinite(lastPage) ? lastPage - firstPage + 1 : null;
   const replies = [];
 
   for (let page = firstPage; page <= lastPage; page += 1) {
@@ -64,7 +67,7 @@ export async function fetchReplies(postId, { start, end, onProgress, signal } = 
       signal
     );
     replies.push(...batch);
-    onProgress?.({ page: page - firstPage + 1, pages: lastPage - firstPage + 1 });
+    onProgress?.({ page: page - firstPage + 1, pages: total });
     if (batch.length < API_PER_PAGE) break;
     if (page < lastPage) await sleep(REQUEST_GAP_MS);
   }
@@ -77,19 +80,37 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export function entryFromPost(post) {
+export function entryFromPost(post, username = null) {
   return {
     name: post.character?.name ?? null,
-    username: post.user?.username ?? 'unknown',
+    username,
     icon: post.icon?.keyword ?? null,
     html: post.content ?? '',
   };
 }
 
+/**
+ * The post endpoint reports every author of the thread but not which of them
+ * wrote the opening post, so recover it from the rendered page if it happens to
+ * be on screen, otherwise from the next time that character tags in.
+ */
+export function openingAuthor(post, replies = [], doc = null) {
+  const rendered = doc
+    ?.querySelector('.post-container.post-post .post-author')
+    ?.textContent.trim();
+  if (rendered) return rendered;
+
+  if (post.character?.id) {
+    const match = replies.find((reply) => reply.character?.id === post.character.id);
+    if (match?.user?.username) return match.user.username;
+  }
+  return null;
+}
+
 export function entryFromReply(reply) {
   return {
     name: reply.character_name ?? reply.character?.name ?? null,
-    username: reply.user?.username ?? 'unknown',
+    username: reply.user?.username ?? null,
     icon: reply.icon?.keyword ?? null,
     html: reply.content ?? '',
   };
@@ -100,7 +121,7 @@ export function entryFromElement(element) {
   const text = (selector) => element.querySelector(selector)?.textContent.trim() || null;
   return {
     name: text('.post-character'),
-    username: text('.post-author') ?? 'unknown',
+    username: text('.post-author'),
     icon: element.querySelector('.post-icon img')?.getAttribute('title') || null,
     html: element.querySelector('.post-content')?.innerHTML ?? '',
   };
@@ -126,12 +147,14 @@ export function perPageFromDocument(doc, href) {
 
 export function formatEntry(entry, options = {}) {
   const opts = { icons: true, ...options };
-  const speaker = entry.name && entry.name !== entry.username
-    ? `${entry.name} (${entry.username})`
-    : entry.username;
   const icon = opts.icons && entry.icon ? ` [${entry.icon}]` : '';
   const body = htmlToMarkdown(entry.html, opts);
-  return `## ${speaker}${icon}\n${body}`;
+  return `## ${speakerLabel(entry)}${icon}\n${body}`;
+}
+
+function speakerLabel({ name, username }) {
+  if (name && username && name !== username) return `${name} (${username})`;
+  return name || username || 'unknown';
 }
 
 export function buildHeader(post, { scope, part } = {}) {

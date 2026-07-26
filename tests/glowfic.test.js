@@ -9,6 +9,7 @@ import {
   entryFromReply,
   fileStem,
   formatEntry,
+  openingAuthor,
   pageCount,
   parseThreadUrl,
   perPageFromDocument,
@@ -26,10 +27,9 @@ const POST = {
   board: { id: 215, name: 'planecrash' },
   section: { id: 703, name: 'planecrash' },
   authors: [{ username: 'Iarwain' }, { username: 'lintamande' }],
-  character: { name: 'Keltham' },
+  character: { id: 11729, name: 'Keltham', screenname: 'lawful chaotic' },
   icon: { keyword: 'brooding 1' },
   content: '<p>Keltham is having a <em>very</em> strange day.</p>',
-  user: { username: 'Iarwain' },
 };
 
 test('thread URLs yield the post id and page', () => {
@@ -97,10 +97,39 @@ test('narration with no character is labelled with the author alone', () => {
 });
 
 test('icon keywords can be turned off', () => {
-  const entry = entryFromPost(POST);
+  const entry = entryFromPost(POST, 'Iarwain');
   assert.equal(
     formatEntry(entry, { icons: false }),
     '## Keltham (Iarwain)\nKeltham is having a *very* strange day.'
+  );
+});
+
+test('the opening author is read from the page when it is on screen', () => {
+  const doc = parse(fixture);
+  assert.equal(openingAuthor(POST, [], doc), 'Rockeye');
+});
+
+test('the opening author falls back to the next tag by the same character', () => {
+  const replies = [
+    { character: { id: 99 }, user: { username: 'someone-else' } },
+    { character: { id: 11729 }, user: { username: 'Iarwain' } },
+  ];
+  assert.equal(openingAuthor(POST, replies, null), 'Iarwain');
+});
+
+test('an unknown opening author is omitted rather than invented', () => {
+  const post = { ...POST, character: null };
+  assert.equal(openingAuthor(post, [], null), null);
+  assert.equal(
+    formatEntry(entryFromPost(post, null), { icons: false }),
+    '## unknown\nKeltham is having a *very* strange day.'
+  );
+});
+
+test('a character with no known author is labelled by character alone', () => {
+  assert.equal(
+    formatEntry(entryFromPost(POST, null), { icons: false }),
+    '## Keltham\nKeltham is having a *very* strange day.'
   );
 });
 
@@ -169,4 +198,12 @@ test('the reader per-page setting is read from the page, then the URL', () => {
 test('download names are filesystem safe and identify the post', () => {
   assert.equal(fileStem(POST), 'mad-investor-chaos-and-the-woman-of-asmodeus-4582');
   assert.equal(fileStem({ id: 7, subject: 'Whose Line Is It, Anyway?!' }), 'whose-line-is-it-anyway-7');
+});
+
+test('an open-ended fetch reports progress without a bogus page total', async () => {
+  const seen = [];
+  globalThis.fetch = async () => ({ ok: true, status: 200, json: async () => [] });
+  const { fetchReplies } = await import('../src/glowfic.js');
+  await fetchReplies(100, { onProgress: (progress) => seen.push(progress) });
+  assert.deepEqual(seen, [{ page: 1, pages: null }]);
 });
