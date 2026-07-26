@@ -15,7 +15,7 @@ import {
   perPageFromDocument,
   replyRangeForPages,
 } from './glowfic.js';
-import { FORMATS, buildDocument, splitDocument } from './formats.js';
+import { FORMATS, assembleDocument, renderEntries, splitBlocks } from './formats.js';
 
 const HOST_ID = 'glowfic-transcript';
 
@@ -142,6 +142,7 @@ class Panel {
     this.thread = thread;
     this.post = null;
     this.entries = [];
+    this.blocks = null;
     this.$ = (selector) => root.querySelector(selector);
 
     this.$('.close').addEventListener('click', () => this.close());
@@ -202,6 +203,7 @@ class Panel {
 
   async run() {
     const scope = this.root.querySelector('input[name=scope]:checked').value;
+    this.blocks = null;
     this.$('.fetch').disabled = true;
     this.$('.result').hidden = true;
     this.status('Fetching…');
@@ -254,23 +256,34 @@ class Panel {
     return `Pages ${from}–${to} of ${this.pages}`;
   }
 
+  get settings() {
+    return { ...this.options, scope: this.scopeNote };
+  }
+
+  /**
+   * Renders every entry once and holds the result, because a report needs both
+   * the whole document and the split file count, and on a thread the size of
+   * planecrash rendering twice per checkbox click is seconds of lag.
+   */
+  render() {
+    this.blocks = renderEntries(this.format, this.entries, this.settings);
+    return this.blocks;
+  }
+
   output() {
-    return buildDocument(this.format, this.post, this.entries, {
-      ...this.options,
-      scope: this.scopeNote,
-    });
+    return assembleDocument(this.format, this.post, this.blocks ?? this.render(), this.settings);
   }
 
   parts() {
     const maxChars = (Number(this.$('.chunk').value) || 300) * 1000;
-    return splitDocument(this.format, this.post, this.entries, {
-      ...this.options,
-      scope: this.scopeNote,
+    return splitBlocks(this.format, this.post, this.blocks ?? this.render(), {
+      ...this.settings,
       maxChars,
     });
   }
 
   report() {
+    this.render();
     const text = this.output();
     const tokens = estimateTokens(text);
     this.status('');

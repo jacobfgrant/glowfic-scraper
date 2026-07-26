@@ -130,8 +130,22 @@ const html = {
 
 export const FORMATS = { markdown, html };
 
+/**
+ * Renders each entry once.
+ *
+ * Rendering is the expensive part -- every entry is parsed as HTML -- and a
+ * panel showing both a size estimate and a file count needs the same blocks
+ * twice, so callers doing both should render here and pass the result to both.
+ */
+export function renderEntries(format, entries, options = {}) {
+  return entries.map((entry) => format.entry(entry, options));
+}
+
 export function buildDocument(format, post, entries, options = {}) {
-  const blocks = entries.map((entry) => format.entry(entry, options));
+  return assembleDocument(format, post, renderEntries(format, entries, options), options);
+}
+
+export function assembleDocument(format, post, blocks, options = {}) {
   return format.document(post, blocks, options);
 }
 
@@ -140,8 +154,11 @@ export function buildDocument(format, post, entries, options = {}) {
  * entries and repeating the header so each file stands on its own.
  */
 export function splitDocument(format, post, entries, options = {}) {
+  return splitBlocks(format, post, renderEntries(format, entries, options), options);
+}
+
+export function splitBlocks(format, post, blocks, options = {}) {
   const { maxChars = DEFAULT_MAX_CHARS } = options;
-  const blocks = entries.map((entry) => format.entry(entry, options));
   const groups = [[]];
   let size = 0;
 

@@ -303,3 +303,37 @@ test('on the apex host every request stays on the apex', async () => {
   }
   panel.close();
 });
+
+test('each entry is rendered once per report, not once per output', async () => {
+  const formats = await import('../src/formats.js');
+  const replies = Array.from({ length: 5 }, (_, i) => ({ ...REPLY, id: i }));
+  const { panel, dom } = await openReadyPanel({ replies });
+  const $ = (selector) => panel.root.querySelector(selector);
+
+  const real = formats.FORMATS.markdown.entry;
+  let renders = 0;
+  formats.FORMATS.markdown.entry = function (...args) {
+    renders += 1;
+    return real.apply(this, args);
+  };
+
+  try {
+    $('input[name=scope][value=all]').checked = true;
+    $('.fetch').click();
+    await panel.busy;
+
+    // Six entries: the opening post plus five replies. A report needs both the
+    // whole document and the split file count, and used to render for each.
+    assert.equal(panel.entries.length, 6);
+    assert.equal(renders, 6, 'entries were rendered more than once');
+
+    renders = 0;
+    $('.icons').checked = false;
+    $('.icons').dispatchEvent(new dom.window.Event('input'));
+    assert.equal(renders, 6, 'a toggle re-rendered more than once');
+    assert.ok(!panel.output().includes('[Celegorm]'), 'the toggle did not take effect');
+  } finally {
+    formats.FORMATS.markdown.entry = real;
+    panel.close();
+  }
+});
