@@ -27,7 +27,7 @@ function load({ executeScript }) {
 
 test('the panel is injected into the page world, not the isolated one', async () => {
   const { calls, click } = load({ executeScript: async () => {} });
-  await click({ id: 7 });
+  await click({ id: 7, url: 'https://glowfic.com/posts/100' });
 
   assert.equal(calls.length, 1);
   assert.deepEqual(calls[0], { target: { tabId: 7 }, world: 'MAIN', files: ['content.js'] });
@@ -39,7 +39,7 @@ test('a browser without world support still gets the panel', async () => {
       if (options.world) throw new Error('Unsupported option: world');
     },
   });
-  await click({ id: 7 });
+  await click({ id: 7, url: 'https://glowfic.com/posts/100' });
 
   assert.equal(calls.length, 2);
   assert.equal(calls[1].world, undefined);
@@ -54,12 +54,29 @@ test('a page that refuses injection is reported, not thrown', async () => {
     },
   });
 
-  await assert.doesNotReject(click({ id: 7 }));
+  await assert.doesNotReject(click({ id: 7, url: 'https://glowfic.com/posts/100' }));
   assert.match(warnings.join('\n'), /could not run on this page/);
 });
 
 test('a tab with no id is ignored', async () => {
   const { calls, click } = load({ executeScript: async () => {} });
-  await click({});
+  await click({ url: 'https://glowfic.com/posts/100' });
   assert.equal(calls.length, 0);
+});
+
+test('nothing is injected into a page that is not a glowfic thread', async () => {
+  const { calls, click } = load({ executeScript: async () => {} });
+
+  for (const url of ['https://example.com/posts/1', 'https://glowfic.com.evil.example/', 'chrome://extensions', '']) {
+    await click({ id: 7, url });
+  }
+  assert.equal(calls.length, 0);
+});
+
+test('both glowfic hosts are accepted', async () => {
+  const { calls, click } = load({ executeScript: async () => {} });
+
+  await click({ id: 7, url: 'https://glowfic.com/posts/100' });
+  await click({ id: 8, url: 'https://www.glowfic.com/posts/100?page=3' });
+  assert.equal(calls.length, 2);
 });

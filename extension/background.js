@@ -26,8 +26,12 @@ async function inject(tabId) {
   }
 }
 
+// The panel only works on a thread, and a stray toolbar click should not drop
+// a script into an unrelated page's script world.
+const GLOWFIC_URL = /^https:\/\/(www\.)?glowfic\.com\//;
+
 chrome.action.onClicked.addListener(async (tab) => {
-  if (!tab.id) return;
+  if (!tab.id || !GLOWFIC_URL.test(tab.url || '')) return;
   try {
     await inject(tab.id);
   } catch (error) {

